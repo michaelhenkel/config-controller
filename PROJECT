@@ -1,0 +1,12 @@
+domain: github.com
+layout:
+- go.kubebuilder.io/v3
+projectName: config-controller
+repo: github.com/michaelhenkel/config-controller
+resources:
+- controller: true
+  domain: github.com
+  group: henkel
+  kind: Config
+  version: v1
+version: "3"
