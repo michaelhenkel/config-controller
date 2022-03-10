@@ -45,7 +45,7 @@ func (res *VirtualMachine) GetNamespace() string {
 }
 
 func (res *VirtualMachine) GetKind() string {
-	return res.Kind
+	return "VirtualMachine"
 }
 
 func (res *VirtualMachine) GetReferences() [][]string {
@@ -71,12 +71,11 @@ func (r *VirtualMachineReconciler) InitNodes() ([]db.Resource, error) {
 		return nil, err
 	}
 	var objList []db.Resource
-	for _, r := range resourceList.Items {
-		var dbResource db.Resource
-		obj := &VirtualMachine{
-			VirtualMachine: &r,
+	for idx := range resourceList.Items {
+		res := resourceList.Items[idx]
+		var dbResource db.Resource = &VirtualMachine{
+			VirtualMachine: &res,
 		}
-		dbResource = obj
 		objList = append(objList, dbResource)
 	}
 	return objList, nil

@@ -45,11 +45,19 @@ func (res *VirtualMachineInterface) GetNamespace() string {
 }
 
 func (res *VirtualMachineInterface) GetKind() string {
-	return res.Kind
+	return "VirtualMachineInterface"
 }
 
 func (res *VirtualMachineInterface) GetReferences() [][]string {
-	return [][]string{}
+	var refList [][]string
+	for _, ref := range res.Spec.VirtualMachineInterfaceReferences {
+		refList = append(refList, []string{ref.Name, ref.Namespace, ref.Kind})
+	}
+	for _, ref := range res.Spec.VirtualMachineReferences {
+		refList = append(refList, []string{ref.Name, ref.Namespace, ref.Kind})
+	}
+	refList = append(refList, []string{res.Spec.VirtualNetworkReference.Name, res.Spec.VirtualNetworkReference.Namespace, res.Spec.VirtualNetworkReference.Kind})
+	return refList
 }
 
 func init() {
@@ -71,12 +79,11 @@ func (r *VirtualMachineInterfaceReconciler) InitNodes() ([]db.Resource, error) {
 		return nil, err
 	}
 	var objList []db.Resource
-	for _, r := range resourceList.Items {
-		var dbResource db.Resource
-		obj := &VirtualMachineInterface{
-			VirtualMachineInterface: &r,
+	for idx := range resourceList.Items {
+		res := resourceList.Items[idx]
+		var dbResource db.Resource = &VirtualMachineInterface{
+			VirtualMachineInterface: &res,
 		}
-		dbResource = obj
 		objList = append(objList, dbResource)
 	}
 	return objList, nil

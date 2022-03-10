@@ -45,11 +45,15 @@ func (res *VirtualRouter) GetNamespace() string {
 }
 
 func (res *VirtualRouter) GetKind() string {
-	return res.Kind
+	return "VirtualRouter"
 }
 
 func (res *VirtualRouter) GetReferences() [][]string {
-	return [][]string{}
+	var refList [][]string
+	for _, ref := range res.Spec.VirtualMachineReferences {
+		refList = append(refList, []string{ref.Name, ref.Namespace, ref.Kind})
+	}
+	return refList
 }
 
 func init() {
@@ -71,12 +75,11 @@ func (r *VirtualRouterReconciler) InitNodes() ([]db.Resource, error) {
 		return nil, err
 	}
 	var objList []db.Resource
-	for _, r := range resourceList.Items {
-		var dbResource db.Resource
-		obj := &VirtualRouter{
-			VirtualRouter: &r,
+	for idx := range resourceList.Items {
+		res := resourceList.Items[idx]
+		var dbResource db.Resource = &VirtualRouter{
+			VirtualRouter: &res,
 		}
-		dbResource = obj
 		objList = append(objList, dbResource)
 	}
 	return objList, nil

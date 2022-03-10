@@ -45,11 +45,15 @@ func (res *VirtualNetwork) GetNamespace() string {
 }
 
 func (res *VirtualNetwork) GetKind() string {
-	return res.Kind
+	return "VirtualNetwork"
 }
 
 func (res *VirtualNetwork) GetReferences() [][]string {
-	return [][]string{}
+	var refList [][]string
+	//refList = append(refList, []string{res.Spec.ProviderNetworkReference.Name, res.Spec.ProviderNetworkReference.Namespace, res.Spec.ProviderNetworkReference.Kind})
+	//refList = append(refList, []string{res.Spec.V4SubnetReference.Name, res.Spec.V4SubnetReference.Namespace, res.Spec.V4SubnetReference.Kind})
+	//refList = append(refList, []string{res.Spec.V6SubnetReference.Name, res.Spec.V6SubnetReference.Namespace, res.Spec.V6SubnetReference.Kind})
+	return refList
 }
 
 func init() {
@@ -71,12 +75,11 @@ func (r *VirtualNetworkReconciler) InitNodes() ([]db.Resource, error) {
 		return nil, err
 	}
 	var objList []db.Resource
-	for _, r := range resourceList.Items {
-		var dbResource db.Resource
-		obj := &VirtualNetwork{
-			VirtualNetwork: &r,
+	for idx := range resourceList.Items {
+		res := resourceList.Items[idx]
+		var dbResource db.Resource = &VirtualNetwork{
+			VirtualNetwork: &res,
 		}
-		dbResource = obj
 		objList = append(objList, dbResource)
 	}
 	return objList, nil

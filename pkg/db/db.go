@@ -80,12 +80,7 @@ func (d *DB) InitEdges(items []Resource) {
 		for _, ref := range referenceList {
 			if dstNode, ok := d.graph.GetNode(graph.Node{Name: ref[0], Namespace: ref[1], Kind: ref[2]}); ok {
 				d.graph.AddEdge(srcNode, dstNode)
-				//if srcNode.Kind() == "VirtualMachineInterface" && srcNode.String() == "ns1/pod-ns1-7f7341b9" {
-				//	klog.Infof("added edge from %s %s to %s %s", srcNode.Kind(), srcNode.String(), dstNode.Kind(), dstNode.String())
-				//}
-				if dstNode.Kind == "VirtualMachine" && dstNode.Name == "contrail-k8s-kubemanager-cluster1-local-pod-ns1-c2dbc0ed" {
-					klog.Infof("added edge from %s %s to %s %s", srcNode.Kind, srcNode.Name, dstNode.Kind, dstNode.Name)
-				}
+				klog.Infof("added edge from %s %s to %s %s", srcNode.Kind, srcNode.Name, dstNode.Kind, dstNode.Name)
 			}
 		}
 	}

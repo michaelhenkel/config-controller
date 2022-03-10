@@ -108,16 +108,17 @@ func main() {
 
 	dbClient := db.NewClient()
 
-	var resources []db.Resource
+	var resourcesList []db.Resource
 	for controllerName, controller := range controllers.ControllerMap {
 		controllers.ControllerMap[controllerName] = controller.New(mgr.GetClient(), contrailClientSet, mgr.GetScheme())
-		resources, err = controllers.ControllerMap[controllerName].InitNodes()
+		resources, err := controllers.ControllerMap[controllerName].InitNodes()
 		if err != nil {
 			os.Exit(1)
 		}
+		resourcesList = append(resourcesList, resources...)
 	}
-	dbClient.InitNodes(resources)
-	dbClient.InitEdges(resources)
+	dbClient.InitNodes(resourcesList)
+	dbClient.InitEdges(resourcesList)
 
 	for controllerName, controller := range controllers.ControllerMap {
 		if err = controller.SetupWithManager(mgr); err != nil {
