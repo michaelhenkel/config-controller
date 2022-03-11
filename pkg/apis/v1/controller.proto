@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package github.com.michaelhenkel.config_controller.pkg.apis.v1;
+
+/* 
+export PATH="$PATH:$(go env GOPATH)/bin"
+(cd pkg/apis/v1 && protoc -I. -I/home/mhenkel/go/src --go_out=plugins=grpc:/home/mhenkel/go/src controller.proto)
+*/
+import "ssd-git.juniper.net/contrail/cn2/contrail/pkg/apis/core/v1alpha1/generated.proto";
+import "k8s.io/api/core/v1/generated.proto";
+
+option go_package = "github.com/michaelhenkel/config-controller/pkg/apis/v1";
+
+service ConfigController {
+    rpc SubscribeListWatch(SubscriptionRequest) returns (stream Resource);
+    rpc GetVirtualNetwork(Resource) returns (ssd_git.juniper.net.contrail.cn2.contrail.pkg.apis.core.v1alpha1.VirtualNetwork);
+}
+
+message SubscriptionRequest {
+    string name = 1;
+}
+
+message Resource {
+    string kind = 1;
+    string name = 2;
+    string namespace = 3;
+}
+
+/*
+message Resource {
+    oneof resource {
+        ssd_git.juniper.net.contrail.cn2.contrail.pkg.apis.core.v1alpha1.VirtualNetwork virtualNetwork = 1;
+        ssd_git.juniper.net.contrail.cn2.contrail.pkg.apis.core.v1alpha1.VirtualMachineInterface virtualMachineInterface = 2;
+        ssd_git.juniper.net.contrail.cn2.contrail.pkg.apis.core.v1alpha1.VirtualRouter virtualRouter = 3;
+        ssd_git.juniper.net.contrail.cn2.contrail.pkg.apis.core.v1alpha1.VirtualMachine virtualMachine = 4;
+        ssd_git.juniper.net.contrail.cn2.contrail.pkg.apis.core.v1alpha1.InstanceIP instanceIP = 5;
+        ssd_git.juniper.net.contrail.cn2.contrail.pkg.apis.core.v1alpha1.RoutingInstance routingInstance = 6;
+        k8s.io.api.core.v1.Namespace namespace = 7;
+    }
+}
+*/

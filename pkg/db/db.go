@@ -46,6 +46,38 @@ func NewClient() *DB {
 	}
 }
 
+func (d *DB) FindFromNodeToKind(fromName, fromNamespace, fromKind string, toKind string, filter []string) []Resource {
+	var resList []Resource
+	srcNode := graph.Node{Name: fromName, Namespace: fromNamespace, Kind: fromKind}
+	dstNode := &graph.Node{Kind: toKind}
+	d.graph.TraverseFrom(srcNode, dstNode, func(n *graph.Node) {
+		if n.Kind == dstNode.Kind {
+			resList = append(resList, &res{
+				Name:      n.Name,
+				Kind:      n.Kind,
+				Namespace: n.Namespace,
+			})
+		}
+	}, filter...)
+	return resList
+}
+
+/*
+func (d *DB) Search(from graph.Node, to *graph.Node, filter []string) []Resource {
+	var resList []Resource
+	d.graph.TraverseFrom(from, to, func(n *graph.Node) {
+		if n.Kind == to.Kind {
+			resList = append(resList, &res{
+				Name:      n.Name,
+				Kind:      n.Kind,
+				Namespace: n.Namespace,
+			})
+		}
+	}, filter...)
+	return resList
+}
+*/
+
 func (d *DB) Search(from graph.Node, to *graph.Node, filter []string) []*graph.Node {
 	var nodeList []*graph.Node
 	d.graph.TraverseFrom(from, to, func(n *graph.Node) {
@@ -54,6 +86,28 @@ func (d *DB) Search(from graph.Node, to *graph.Node, filter []string) []*graph.N
 		}
 	}, filter...)
 	return nodeList
+}
+
+type res struct {
+	Name      string
+	Namespace string
+	Kind      string
+}
+
+func (r *res) GetName() string {
+	return r.Name
+}
+
+func (r *res) GetNamespace() string {
+	return r.Namespace
+}
+
+func (r *res) GetKind() string {
+	return r.Kind
+}
+
+func (r *res) GetReferences() [][]string {
+	return [][]string{}
 }
 
 type Resource interface {

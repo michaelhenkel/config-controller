@@ -28,6 +28,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 
+	"github.com/michaelhenkel/config-controller/pkg/server"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -105,12 +106,12 @@ func main() {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
-
+	var nodeResourceChan = make(chan controllers.NodeResource)
+	serverClient := server.NewClient()
 	dbClient := db.NewClient()
-
 	var resourcesList []db.Resource
 	for controllerName, controller := range controllers.ControllerMap {
-		controllers.ControllerMap[controllerName] = controller.New(mgr.GetClient(), contrailClientSet, mgr.GetScheme())
+		controllers.ControllerMap[controllerName] = controller.New(mgr.GetClient(), contrailClientSet, mgr.GetScheme(), dbClient, nodeResourceChan)
 		resources, err := controllers.ControllerMap[controllerName].InitNodes()
 		if err != nil {
 			os.Exit(1)
@@ -138,9 +139,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	setupLog.Info("starting grpc server")
+	go serverClient.Start(controllers.ControllerMap, nodeResourceChan)
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+
 }

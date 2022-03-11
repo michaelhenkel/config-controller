@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 
+	pbv1 "github.com/michaelhenkel/config-controller/pkg/apis/v1"
 	"github.com/michaelhenkel/config-controller/pkg/db"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -60,11 +61,13 @@ func init() {
 	ControllerMap["VirtualNetwork"] = &VirtualNetworkReconciler{}
 }
 
-func (r *VirtualNetworkReconciler) New(client client.Client, contrailClient *contrailClientset.Clientset, scheme *runtime.Scheme) ResourceController {
+func (r *VirtualNetworkReconciler) New(client client.Client, contrailClient *contrailClientset.Clientset, scheme *runtime.Scheme, dbClient *db.DB, nodeResourceChan chan NodeResource) ResourceController {
 	return &VirtualNetworkReconciler{
-		Client:         client,
-		Scheme:         scheme,
-		contrailClient: contrailClient,
+		Client:           client,
+		Scheme:           scheme,
+		contrailClient:   contrailClient,
+		dbClient:         dbClient,
+		nodeResourceChan: nodeResourceChan,
 	}
 }
 
@@ -88,8 +91,10 @@ func (r *VirtualNetworkReconciler) InitNodes() ([]db.Resource, error) {
 // ConfigReconciler reconciles a Config object
 type VirtualNetworkReconciler struct {
 	client.Client
-	Scheme         *runtime.Scheme
-	contrailClient *contrailClientset.Clientset
+	Scheme           *runtime.Scheme
+	contrailClient   *contrailClientset.Clientset
+	dbClient         *db.DB
+	nodeResourceChan chan NodeResource
 }
 
 //+kubebuilder:rbac:groups=core.contrail.juniper.net,resources=*,verbs=*
@@ -117,8 +122,19 @@ func (r *VirtualNetworkReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			return ctrl.Result{}, err
 		}
 	}
-	klog.Infof("got %s %s/%s", res.Kind, res.Namespace, res.Name)
-
+	nodesForResource := FromResourceToNodes(res.Name, req.Namespace, res.Kind, []string{"VirtualMachine", "VirtualMachineInterface", "VirtualRouter"}, r.dbClient)
+	for _, node := range nodesForResource {
+		klog.Infof("%s %s/%s -> %s", res.Kind, res.Namespace, res.Name, node.GetName())
+		nodeResource := &NodeResource{
+			Resource: &pbv1.Resource{
+				Name:      res.Name,
+				Namespace: res.Namespace,
+				Kind:      res.Kind,
+			},
+			Node: node.GetName(),
+		}
+		r.nodeResourceChan <- *nodeResource
+	}
 	return ctrl.Result{}, nil
 }
 
@@ -127,4 +143,12 @@ func (r *VirtualNetworkReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&contrail.VirtualNetwork{}).
 		Complete(r)
+}
+
+func (r *VirtualNetworkReconciler) Get(name, namespace string) (interface{}, error) {
+	res := &contrail.VirtualNetwork{}
+	if err := r.Client.Get(context.Background(), types.NamespacedName{Name: name, Namespace: namespace}, res); err != nil {
+		return nil, err
+	}
+	return res, nil
 }

@@ -60,11 +60,13 @@ func init() {
 	ControllerMap["VirtualRouter"] = &VirtualRouterReconciler{}
 }
 
-func (r *VirtualRouterReconciler) New(client client.Client, contrailClient *contrailClientset.Clientset, scheme *runtime.Scheme) ResourceController {
+func (r *VirtualRouterReconciler) New(client client.Client, contrailClient *contrailClientset.Clientset, scheme *runtime.Scheme, dbClient *db.DB, nodeResourceChan chan NodeResource) ResourceController {
 	return &VirtualRouterReconciler{
-		Client:         client,
-		Scheme:         scheme,
-		contrailClient: contrailClient,
+		Client:           client,
+		Scheme:           scheme,
+		contrailClient:   contrailClient,
+		dbClient:         dbClient,
+		nodeResourceChan: nodeResourceChan,
 	}
 }
 
@@ -88,8 +90,10 @@ func (r *VirtualRouterReconciler) InitNodes() ([]db.Resource, error) {
 // ConfigReconciler reconciles a Config object
 type VirtualRouterReconciler struct {
 	client.Client
-	Scheme         *runtime.Scheme
-	contrailClient *contrailClientset.Clientset
+	Scheme           *runtime.Scheme
+	contrailClient   *contrailClientset.Clientset
+	dbClient         *db.DB
+	nodeResourceChan chan NodeResource
 }
 
 //+kubebuilder:rbac:groups=core.contrail.juniper.net,resources=*,verbs=*
@@ -117,7 +121,7 @@ func (r *VirtualRouterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			return ctrl.Result{}, err
 		}
 	}
-	klog.Infof("got %s %s/%s", res.Kind, res.Namespace, res.Name)
+	//klog.Infof("got %s %s/%s", res.Kind, res.Namespace, res.Name)
 
 	return ctrl.Result{}, nil
 }
@@ -127,4 +131,12 @@ func (r *VirtualRouterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&contrail.VirtualRouter{}).
 		Complete(r)
+}
+
+func (r *VirtualRouterReconciler) Get(name, namespace string) (interface{}, error) {
+	res := &contrail.VirtualRouter{}
+	if err := r.Client.Get(context.Background(), types.NamespacedName{Name: name, Namespace: namespace}, res); err != nil {
+		return nil, err
+	}
+	return res, nil
 }

@@ -19,15 +19,20 @@ package controllers
 import (
 	"context"
 
+	pbv1 "github.com/michaelhenkel/config-controller/pkg/apis/v1"
 	"github.com/michaelhenkel/config-controller/pkg/db"
+	"github.com/michaelhenkel/config-controller/pkg/predicates"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 	contrail "ssd-git.juniper.net/contrail/cn2/contrail/pkg/apis/core/v1alpha1"
 	contrailClientset "ssd-git.juniper.net/contrail/cn2/contrail/pkg/client/clientset_generated/clientset"
 )
@@ -64,11 +69,13 @@ func init() {
 	ControllerMap["VirtualMachineInterface"] = &VirtualMachineInterfaceReconciler{}
 }
 
-func (r *VirtualMachineInterfaceReconciler) New(client client.Client, contrailClient *contrailClientset.Clientset, scheme *runtime.Scheme) ResourceController {
+func (r *VirtualMachineInterfaceReconciler) New(client client.Client, contrailClient *contrailClientset.Clientset, scheme *runtime.Scheme, dbClient *db.DB, nodeResourceChan chan NodeResource) ResourceController {
 	return &VirtualMachineInterfaceReconciler{
-		Client:         client,
-		Scheme:         scheme,
-		contrailClient: contrailClient,
+		Client:           client,
+		Scheme:           scheme,
+		contrailClient:   contrailClient,
+		dbClient:         dbClient,
+		nodeResourceChan: nodeResourceChan,
 	}
 }
 
@@ -92,8 +99,10 @@ func (r *VirtualMachineInterfaceReconciler) InitNodes() ([]db.Resource, error) {
 // ConfigReconciler reconciles a Config object
 type VirtualMachineInterfaceReconciler struct {
 	client.Client
-	Scheme         *runtime.Scheme
-	contrailClient *contrailClientset.Clientset
+	Scheme           *runtime.Scheme
+	contrailClient   *contrailClientset.Clientset
+	dbClient         *db.DB
+	nodeResourceChan chan NodeResource
 }
 
 //+kubebuilder:rbac:groups=core.contrail.juniper.net,resources=*,verbs=*
@@ -122,6 +131,19 @@ func (r *VirtualMachineInterfaceReconciler) Reconcile(ctx context.Context, req c
 		}
 	}
 	klog.Infof("got %s %s/%s", res.Kind, res.Namespace, res.Name)
+	nodesForResource := FromResourceToNodes(res.Name, req.Namespace, res.Kind, []string{"VirtualMachine", "VirtualRouter"}, r.dbClient)
+	for _, node := range nodesForResource {
+		klog.Infof("%s %s/%s -> %s", res.Kind, res.Namespace, res.Name, node.GetName())
+		nodeResource := &NodeResource{
+			Resource: &pbv1.Resource{
+				Name:      res.Name,
+				Namespace: res.Namespace,
+				Kind:      res.Kind,
+			},
+			Node: node.GetName(),
+		}
+		r.nodeResourceChan <- *nodeResource
+	}
 
 	return ctrl.Result{}, nil
 }
@@ -130,5 +152,18 @@ func (r *VirtualMachineInterfaceReconciler) Reconcile(ctx context.Context, req c
 func (r *VirtualMachineInterfaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&contrail.VirtualMachineInterface{}).
+		Watches(
+			&source.Kind{Type: &contrail.VirtualMachineInterface{}},
+			&handler.EnqueueRequestForObject{},
+			builder.WithPredicates(predicates.VirtualMachineInterfaceSpecChangePredicate{}),
+		).
 		Complete(r)
+}
+
+func (r *VirtualMachineInterfaceReconciler) Get(name, namespace string) (interface{}, error) {
+	res := &contrail.VirtualMachineInterface{}
+	if err := r.Client.Get(context.Background(), types.NamespacedName{Name: name, Namespace: namespace}, res); err != nil {
+		return nil, err
+	}
+	return res, nil
 }
