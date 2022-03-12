@@ -29,10 +29,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut virtual_router_receiver = receiver.clone();
 
     let virtual_network_controller_thread = virtual_network_controller(&mut virtual_network_client,&mut receiver);
-    let virtual_router_controller_thread = virtual_network_controller(&mut virtual_router_client,&mut virtual_router_receiver);
+    let virtual_router_controller_thread = virtual_router_controller(&mut virtual_router_client,&mut virtual_router_receiver);
     let subscribe_thread = subscribe(&mut subscription_client, sender);
 
-    futures::join!(subscribe_thread, virtual_network_controller_thread);
+    futures::join!(subscribe_thread, virtual_network_controller_thread, virtual_router_controller_thread);
 
     Ok(())
 }
@@ -45,6 +45,7 @@ async fn subscribe(client: &mut ConfigControllerClient<Channel>, sender: Sender<
 
     let mut queue_map: HashMap<String,ResourceQueue> = HashMap::new();
     queue_map.insert("VirtualNetwork".to_string(), ResourceQueue::new());
+    queue_map.insert("VirtualRouter".to_string(), ResourceQueue::new());
 
     let mut stream = client
         .subscribe_list_watch(request)
@@ -64,6 +65,12 @@ async fn subscribe(client: &mut ConfigControllerClient<Channel>, sender: Sender<
 }
 
 async fn virtual_router_controller(client: &mut ConfigControllerClient<Channel>, receiver: &mut Receiver<v1::Resource>) -> Result<(), Box<dyn Error>>  {
+    println!("started virtual_network_controller");
+    while receiver.changed().await.is_ok() {
+        let res = &*receiver.borrow();
+        let b = res.clone();
+        println!("received = {:?}", b);
+    }
     Ok(())
 }
 
