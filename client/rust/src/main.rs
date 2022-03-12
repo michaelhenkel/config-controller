@@ -9,16 +9,10 @@ use std::error::Error;
 use std::env;
 use std::vec::Vec;
 mod resources;
-//use std::sync::mpsc;
-//use std::sync::mpsc::{Sender, Receiver};
 use std::{thread, time::Duration};
-use futures::join;
 use tokio::sync::watch;
-use tokio::sync::mpsc;
-use tokio::sync::mpsc::{Sender, Receiver};
-//use tokio::sync::watch::{Sender, Receiver};
+use tokio::sync::watch::{Sender, Receiver};
 use tonic::transport::Endpoint;
-//use crossbeam_utils::thread;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -26,14 +20,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .connect()
         .await?;
 
-    //let (sender, receiver): (Sender<v1::Resource>, Receiver<v1::Resource>) = mpsc::channel();
+    let (sender, mut receiver): (Sender<v1::Resource>, Receiver<v1::Resource>) = watch::channel(v1::Resource::default());
 
-    let (sender, mut receiver): (Sender<v1::Resource>, Receiver<v1::Resource>) = mpsc::channel(1);
     let mut subscription_client = ConfigControllerClient::new(channel.clone());
     let mut virtual_network_client = ConfigControllerClient::new(channel.clone());
-    //let cloned_receiver = receiver.clone();
+    let mut virtual_router_client = ConfigControllerClient::new(channel.clone());
+
+    let mut virtual_router_receiver = receiver.clone();
+
     let virtual_network_controller_thread = virtual_network_controller(&mut virtual_network_client,&mut receiver);
+    let virtual_router_controller_thread = virtual_network_controller(&mut virtual_router_client,&mut virtual_router_receiver);
     let subscribe_thread = subscribe(&mut subscription_client, sender);
+
     futures::join!(subscribe_thread, virtual_network_controller_thread);
 
     Ok(())
@@ -58,43 +56,30 @@ async fn subscribe(client: &mut ConfigControllerClient<Channel>, sender: Sender<
         //println!("resource = {:?}", resource_copy);
         if let Some(queue) = queue_map.get_mut(resource.kind.as_str()) {
             if queue.push(resource){
-                sender.send(queue.pop()).await;
+                sender.send(queue.pop());
             }
         }
     }
     Ok(())
 }
 
+async fn virtual_router_controller(client: &mut ConfigControllerClient<Channel>, receiver: &mut Receiver<v1::Resource>) -> Result<(), Box<dyn Error>>  {
+    Ok(())
+}
+
 async fn virtual_network_controller(client: &mut ConfigControllerClient<Channel>, receiver: &mut Receiver<v1::Resource>) -> Result<(), Box<dyn Error>>  {
     println!("started virtual_network_controller");
-    while let Some(res) = receiver.recv().await {
+    while receiver.changed().await.is_ok() {
+        let res = &*receiver.borrow();
         let b = res.clone();
-        println!("received = {:?}", b);
-        let vn_result: Result<tonic::Response<v1alpha1::VirtualNetwork>, tonic::Status> = client.get_virtual_network(res).await;
+        //println!("received = {:?}", b);
+        let vn_result: Result<tonic::Response<v1alpha1::VirtualNetwork>, tonic::Status> = client.get_virtual_network(b).await;
         let vn_resp: &mut tonic::Response<v1alpha1::VirtualNetwork> = &mut vn_result.unwrap();
         let vn: &mut v1alpha1::VirtualNetwork = vn_resp.get_mut();
         println!("{}/{}", vn.metadata.as_ref().unwrap().namespace(), vn.metadata.as_ref().unwrap().name());
         println!("labels {:?}", vn.metadata.as_ref().unwrap().labels);
         thread::sleep(Duration::from_secs(20));
     }
-    /*
-    match receiver.recv() {
-        Ok(resource) => println!("ok"),
-        Err(e) => println!("err"),
-    }
-    */
-    /*
-    while let res = receiver.recv().unwrap() {
-        let b = res.clone();
-        println!("{} {}/{}", b.kind, b.namespace, b.name);
-        let vn_result: Result<tonic::Response<v1alpha1::VirtualNetwork>, tonic::Status> = client.get_virtual_network(res).await;
-        /*
-        let vn_resp: &mut tonic::Response<v1alpha1::VirtualNetwork> = &mut vn_result.unwrap();
-        let vn: &mut v1alpha1::VirtualNetwork = vn_resp.get_mut();
-        println!("{}/{}", vn.metadata.as_ref().unwrap().namespace(), vn.metadata.as_ref().unwrap().name());
-        */
-    }
-    */
     Ok(())
 }
 
