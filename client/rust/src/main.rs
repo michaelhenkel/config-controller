@@ -1,4 +1,3 @@
-extern crate queues;
 use config_client::protos::github::com::michaelhenkel::config_controller::pkg::apis::v1::config_controller_client::ConfigControllerClient;
 use config_client::protos::github::com::michaelhenkel::config_controller::pkg::apis::v1::SubscriptionRequest;
 use config_client::protos::github::com::michaelhenkel::config_controller::pkg::apis::v1;
@@ -9,6 +8,7 @@ use std::error::Error;
 use std::env;
 use std::vec::Vec;
 mod resources;
+mod queue;
 use std::{thread, time::Duration};
 use tokio::sync::mpsc;
 use tokio::sync::mpsc::{Sender, Receiver};
@@ -66,44 +66,5 @@ fn get_node() -> String {
         args[1].to_string()
     } else {
         "5b3s30".to_string()
-    }
-}
-
-
-
-struct ResourceQueue {
-    queue: Vec<v1::Resource>,
-}
-
-impl ResourceQueue {
-    pub fn new() -> ResourceQueue {
-        ResourceQueue{
-            queue: Vec::new(),
-        }
-    }
-    pub fn push(&mut self, resource: v1::Resource) -> bool {
-        let mut pushed: bool = false;
-        if !self.exists(&resource){
-            self.queue.push(resource);
-            pushed = true;
-        }
-        pushed
-    }
-
-    pub fn pop(&mut self) -> v1::Resource{
-        let option_resource = self.queue.pop();
-        let resource = option_resource.unwrap();
-        resource
-    }
-
-    pub fn exists(&mut self, resource: &v1::Resource) -> bool {
-        let mut found: bool = false;
-        for res in &self.queue {
-            if res.name == resource.name && res.namespace == resource.namespace && res.kind == resource.kind {
-                found = true;
-                break;
-            }
-        }
-        found
     }
 }

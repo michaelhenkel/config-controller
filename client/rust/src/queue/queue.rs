@@ -1,6 +1,8 @@
 use config_client::protos::github::com::michaelhenkel::config_controller::pkg::apis::v1;
 use std::collections::VecDeque;
 
+
+#[derive(Clone)]
 pub struct ResourceQueue {
     queue: VecDeque<v1::Resource>,
 }
