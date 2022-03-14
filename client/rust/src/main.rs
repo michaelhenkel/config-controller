@@ -10,8 +10,8 @@ use std::env;
 use std::vec::Vec;
 mod resources;
 use std::{thread, time::Duration};
-use tokio::sync::watch;
-use tokio::sync::watch::{Sender, Receiver};
+use tokio::sync::mpsc;
+use tokio::sync::mpsc::{Sender, Receiver};
 use tonic::transport::Endpoint;
 
 #[tokio::main]
@@ -20,32 +20,30 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .connect()
         .await?;
 
-    let (sender, mut receiver): (Sender<v1::Resource>, Receiver<v1::Resource>) = watch::channel(v1::Resource::default());
+    let mut sender_map: HashMap<String,Sender<v1::Resource>> = HashMap::new();
+
+    let (virtual_network_sender, virtual_network_receiver): (Sender<v1::Resource>, Receiver<v1::Resource>) = mpsc::channel(1);
+    sender_map.insert("VirtualNetwork".to_string(), virtual_network_sender);
 
     let mut subscription_client = ConfigControllerClient::new(channel.clone());
-    let mut virtual_network_client = ConfigControllerClient::new(channel.clone());
-    let mut virtual_router_client = ConfigControllerClient::new(channel.clone());
 
-    let mut virtual_router_receiver = receiver.clone();
 
-    let virtual_network_controller_thread = virtual_network_controller(&mut virtual_network_client,&mut receiver);
-    let virtual_router_controller_thread = virtual_router_controller(&mut virtual_router_client,&mut virtual_router_receiver);
-    let subscribe_thread = subscribe(&mut subscription_client, sender);
+    
+    let mut virtual_network_controller = resources::virtualnetwork::VirtualNetworkController::new(channel.clone(), virtual_network_receiver);
+    let virtual_network_controller_thread = virtual_network_controller.run();
 
-    futures::join!(subscribe_thread, virtual_network_controller_thread, virtual_router_controller_thread);
+    let subscribe_thread = subscribe(&mut subscription_client, &mut sender_map);
+
+    futures::join!(subscribe_thread, virtual_network_controller_thread);
 
     Ok(())
 }
 
-async fn subscribe(client: &mut ConfigControllerClient<Channel>, sender: Sender<v1::Resource>) -> Result<(), Box<dyn Error>> {
+async fn subscribe(client: &mut ConfigControllerClient<Channel>, sender_map: &mut HashMap<String,Sender<v1::Resource>>) -> Result<(), Box<dyn Error>> {
     println!("started subscriber_controller");
     let request = tonic::Request::new(SubscriptionRequest {
         name: get_node(),
     });
-
-    let mut queue_map: HashMap<String,ResourceQueue> = HashMap::new();
-    queue_map.insert("VirtualNetwork".to_string(), ResourceQueue::new());
-    queue_map.insert("VirtualRouter".to_string(), ResourceQueue::new());
 
     let mut stream = client
         .subscribe_list_watch(request)
@@ -53,39 +51,11 @@ async fn subscribe(client: &mut ConfigControllerClient<Channel>, sender: Sender<
         .into_inner();
 
     while let Some(resource) = stream.message().await? {
-        //let resource_copy = resource.clone();
-        //println!("resource = {:?}", resource_copy);
-        if let Some(queue) = queue_map.get_mut(resource.kind.as_str()) {
-            if queue.push(resource){
-                sender.send(queue.pop());
-            }
+        println!("got resource");
+        if let Some(sender) = sender_map.get(resource.kind.as_str()) {
+            println!("sending resource");
+            sender.send(resource.clone()).await.unwrap();
         }
-    }
-    Ok(())
-}
-
-async fn virtual_router_controller(client: &mut ConfigControllerClient<Channel>, receiver: &mut Receiver<v1::Resource>) -> Result<(), Box<dyn Error>>  {
-    println!("started virtual_network_controller");
-    while receiver.changed().await.is_ok() {
-        let res = &*receiver.borrow();
-        let b = res.clone();
-        println!("received = {:?}", b);
-    }
-    Ok(())
-}
-
-async fn virtual_network_controller(client: &mut ConfigControllerClient<Channel>, receiver: &mut Receiver<v1::Resource>) -> Result<(), Box<dyn Error>>  {
-    println!("started virtual_network_controller");
-    while receiver.changed().await.is_ok() {
-        let res = &*receiver.borrow();
-        let b = res.clone();
-        //println!("received = {:?}", b);
-        let vn_result: Result<tonic::Response<v1alpha1::VirtualNetwork>, tonic::Status> = client.get_virtual_network(b).await;
-        let vn_resp: &mut tonic::Response<v1alpha1::VirtualNetwork> = &mut vn_result.unwrap();
-        let vn: &mut v1alpha1::VirtualNetwork = vn_resp.get_mut();
-        println!("{}/{}", vn.metadata.as_ref().unwrap().namespace(), vn.metadata.as_ref().unwrap().name());
-        println!("labels {:?}", vn.metadata.as_ref().unwrap().labels);
-        thread::sleep(Duration::from_secs(20));
     }
     Ok(())
 }
