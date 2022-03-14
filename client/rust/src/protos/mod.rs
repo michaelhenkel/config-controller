@@ -1,16 +1,3 @@
-pub mod sigs {
-    pub mod k8s {
-        pub mod io {
-            pub mod apiserver_builder_alpha {
-                pub mod pkg {
-                    pub mod builders {
-                        include!("sigs.k8s.io.apiserver_builder_alpha.pkg.builders.rs");
-                    }
-                }
-            }
-        }
-    }
-}
 pub mod k8s {
     pub mod io {
         pub mod apimachinery {
@@ -79,6 +66,19 @@ pub mod github {
                         pub mod v1 {
                             include!("github.com.michaelhenkel.config_controller.pkg.apis.v1.rs");
                         }
+                    }
+                }
+            }
+        }
+    }
+}
+pub mod sigs {
+    pub mod k8s {
+        pub mod io {
+            pub mod apiserver_builder_alpha {
+                pub mod pkg {
+                    pub mod builders {
+                        include!("sigs.k8s.io.apiserver_builder_alpha.pkg.builders.rs");
                     }
                 }
             }
