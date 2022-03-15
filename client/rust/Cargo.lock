@@ -84,6 +84,7 @@ name = "config_client"
 version = "0.1.0"
 dependencies = [
  "crossbeam",
+ "crossbeam-channel",
  "crossbeam-utils",
  "futures",
  "prost",
