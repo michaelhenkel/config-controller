@@ -22,7 +22,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut sender_map: HashMap<String,Sender<v1::Resource>> = HashMap::new();
 
-    let (virtual_network_sender, virtual_network_receiver): (Sender<v1::Resource>, Receiver<v1::Resource>) = mpsc::channel(1);
+    let (virtual_network_sender, virtual_network_receiver): (Sender<v1::Resource>, Receiver<v1::Resource>) = mpsc::channel(100);
     sender_map.insert("VirtualNetwork".to_string(), virtual_network_sender);
 
     let mut subscription_client = ConfigControllerClient::new(channel.clone());

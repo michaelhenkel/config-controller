@@ -39,47 +39,61 @@ impl VirtualNetworkController {
     }
     pub async fn run(&mut self) -> Result<(), Box<dyn Error>> {
         println!("starting virtual_network_controller");
-        let (mut queue_sender, mut queue_receiver): (Sender<v1::Resource>, Receiver<v1::Resource>) = mpsc::channel(1);
-        let (mut consumer_sender, mut consumer_receiver): (Sender<v1::Resource>, Receiver<v1::Resource>) = mpsc::channel(1);
-        let channel_watcher_thread = channel_watcher(&mut queue_sender, &mut self.receiver);
-        let queue_watcher_thread = queue_watcher(&mut queue_receiver, &mut consumer_sender);
-        let resource_consumer_thread = resource_consumer(&mut consumer_receiver);
-        futures::join!(channel_watcher_thread, queue_watcher_thread, resource_consumer_thread);
+        let queue_watcher_thread = queue_watcher(&mut self.receiver);
+        futures::join!(queue_watcher_thread);
         Ok(())
     }
 }
 
-pub async fn channel_watcher(queue_sender: &mut Sender<v1::Resource>, receiver: &mut Receiver<v1::Resource>) -> Result<(), Box<dyn Error>> {
-    println!("starting channel_watcher");
-    loop {
-        let resource = receiver.recv().await;
-        println!("sending resource {:?} to queue", resource.clone());
-        queue_sender.send(resource.unwrap().clone()).await;
-    }
-}
-
-pub async fn queue_watcher(receiver: &mut Receiver<v1::Resource>, consumer_sender: &mut Sender<v1::Resource>) -> Result<(), Box<dyn Error>> {
+pub async fn queue_watcher(receiver: &mut Receiver<v1::Resource>) -> Result<(), Box<dyn Error>> {
     println!("starting queue_watcher");
 
-    let vec_deque: VecDeque<v1::Resource> = VecDeque::new();
-    let mutex = Arc::new(Mutex::new(vec_deque));
-    let mutex_clone = Arc::clone(&mutex);
-    let consumer_sender_clone = consumer_sender.clone();
+    let resource_queue: VecDeque<v1::Resource> = VecDeque::new();
+    let resource_queue_mutex = Arc::new(Mutex::new(resource_queue));
+    let resource_queue_mutex_clone = Arc::clone(&resource_queue_mutex);
+    
+    let worker_queue: VecDeque<v1::Resource> = VecDeque::new();
+    let worker_queue_mutex = Arc::new(Mutex::new(worker_queue));
+    
     tokio::spawn(async move {
         loop {
-            let mut lock = mutex.lock().await;
-            if lock.is_empty() {
+           
+            let mut resource_queue_lock = resource_queue_mutex_clone.lock().await;
+            let worker_queue_lock = worker_queue_mutex.lock().await;
+            if resource_queue_lock.is_empty() {
                 continue;
             }
-            let resource = lock.pop_front().unwrap();
+            let resource = resource_queue_lock.pop_front().unwrap();
             println!("sending resource {:?} to consumer", resource.clone()); 
-            consumer_sender_clone.send(resource.clone()).await;
+
+            
+            if worker_queue_lock.len() < 2 && !worker_queue_lock.contains(&resource.clone()) {
+                let worker_queue_mutex_clone = Arc::clone(&resource_queue_mutex_clone);
+                
+                tokio::spawn(async move {
+                    let mut worker_queue_mutex_clone_lock = worker_queue_mutex_clone.lock().await;
+                    worker_queue_mutex_clone_lock.push_back(resource.clone());
+                    let mut cloned_resource = resource.clone();
+                    let result = resource_consumer(&mut cloned_resource);
+                    worker_queue_mutex_clone_lock.pop_front();
+                    println!("done");
+                });
+                
+                
+            } else {
+                println!("worker queue full or resource is currently processed, pushing back");
+                resource_queue_lock.push_back(resource.clone());
+            }
+            //consumer_sender_clone.send(resource.clone()).await;
         }
     });
 
     loop {
         let resource = receiver.recv().await.unwrap();
-        let mut lock = mutex_clone.lock().await;
+        println!("received resource {:?}", resource);
+        let resource_queue_mutex_clone = Arc::clone(&resource_queue_mutex);
+        let mut lock = resource_queue_mutex_clone.lock().await;
+        println!("got lock for resource {:?}", resource);
         if !lock.contains(&resource) {
             println!("resource {:?} not in queue, adding it", resource);
             lock.push_back(resource.clone());
@@ -87,23 +101,8 @@ pub async fn queue_watcher(receiver: &mut Receiver<v1::Resource>, consumer_sende
     }
 }
 
-pub async fn resource_consumer(receiver: &mut Receiver<v1::Resource>) -> Result<(), Box<dyn Error>> {
-    let vec_deque: VecDeque<v1::Resource> = VecDeque::new();
-    let mutex = Arc::new(Mutex::new(vec_deque));
-    
-    loop {
-        let resource = receiver.recv().await.unwrap();
-        let mut lock = mutex.lock().await;
-        if lock.len() < 2 {
-            let mutex_clone = Arc::clone(&mutex);
-            lock.push_back(resource.clone());
-            tokio::spawn(async move {
-                println!("consuming {:?} for 30 seconds", resource.clone());
-                thread::sleep(time::Duration::from_secs(30));
-                let mut newlock = mutex_clone.lock().await;
-                newlock.pop_front();
-                println!("done");
-            });
-        }
-    }
+pub fn resource_consumer(resource: &mut v1::Resource) -> Result<(), Box<dyn Error>> {
+    println!("consuming {:?} for 30 seconds", resource.clone());
+    thread::sleep(time::Duration::from_secs(30));
+    Ok(())
 }
