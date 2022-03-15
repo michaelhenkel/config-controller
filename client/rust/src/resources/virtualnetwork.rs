@@ -57,34 +57,67 @@ impl VirtualNetworkController {
         println!("starting queue_watcher");
         let worker_queue: Vec<v1::Resource> = Vec::new();
         let worker_queue_mutex = Arc::new(Mutex::new(worker_queue));
-        let mut resource_queue: VecDeque<v1::Resource> = VecDeque::new();
+        let resource_queue: VecDeque<v1::Resource> = VecDeque::new();
+        let resource_queue_mutex = Arc::new(Mutex::new(resource_queue));
+        let resource_queue_lock_clone = resource_queue_mutex.clone();
         let client = ConfigControllerClient::new(self.channel.clone());
-        loop {
-            let resource = self.receiver.recv().await.unwrap();
-            let mut worker_queue_lock = worker_queue_mutex.lock().await;
-            let worker_queue_clone = worker_queue_mutex.clone();
-            if !worker_queue_lock.contains(&resource){
-                worker_queue_lock.push(resource.clone());
-                println!("got {:?}", resource);
-                let mut client = client.clone();
-                tokio::spawn(async move {
-                    get_resource(&mut client, resource.clone()).await;
-                    let mut worker_queue_lock = worker_queue_clone.lock().await;
-                    worker_queue_lock.retain(|x| *x != resource.clone());
-                });
-            } else {
-                if !resource_queue.contains(&resource){
-                    resource_queue.push_back(resource);
+        let worker_queue_mutex_clone = worker_queue_mutex.clone();
+        let client_clone = client.clone();
+        let (result_sender, mut result_receiver): (tokio::sync::mpsc::Sender<v1::Resource>,tokio::sync::mpsc::Receiver<v1::Resource>) = tokio::sync::mpsc::channel(100);
+        let result_sender_clone = result_sender.clone();
+        tokio::spawn(async move {
+            loop {
+                let result = result_receiver.recv().await.unwrap();
+                println!("got result {:?}", result);
+                let mut resource_queue_lock = resource_queue_lock_clone.lock().await;
+                if !resource_queue_lock.is_empty(){
+                    let resource = resource_queue_lock.pop_front().unwrap();
+                    process(worker_queue_mutex_clone.clone(), resource.clone(), client_clone.clone(), resource_queue_lock_clone.clone(), result_sender_clone.clone()).await;
+                } else {
+                    println!("resource queue empty, no further processing");
                 }
             }
+
+        });
+        loop {
+            let resource = self.receiver.recv().await.unwrap();
+            process(worker_queue_mutex.clone(), resource.clone(), client.clone(), resource_queue_mutex.clone(), result_sender.clone()).await;
+
         }
         
     }
 }
 
-pub async fn process(worker_queue_mutex: Arc<Mutex<Vec<v1::Resource>>>, resource: v1::Resource, client: &mut ConfigControllerClient<tonic::transport::Channel>, resource_queue: &mut VecDeque<v1::Resource> ) {
+pub async fn process(worker_queue_mutex: Arc<Mutex<Vec<v1::Resource>>>, resource: v1::Resource, client: ConfigControllerClient<tonic::transport::Channel>, resource_queue_mutex: Arc<Mutex<VecDeque<v1::Resource>>>, result_sender: tokio::sync::mpsc::Sender<v1::Resource> ) {
     let mut worker_queue_lock = worker_queue_mutex.lock().await;
     let worker_queue_clone = worker_queue_mutex.clone();
+    let resource_queue_clone = resource_queue_mutex.clone();
+    if !worker_queue_lock.contains(&resource){
+        worker_queue_lock.push(resource.clone());
+        println!("got {:?}", resource);
+        let mut client = client.clone();
+        tokio::spawn(async move {
+            get_resource(&mut client, resource.clone(), result_sender).await;
+            let mut worker_queue_lock = worker_queue_clone.lock().await;
+            worker_queue_lock.retain(|x| *x != resource.clone());
+        });
+    } else {
+        println!("resource {:?} already processed, trying to add it to resource queue", resource.clone());
+        let mut resource_queue_lock = resource_queue_clone.lock().await;
+        if !resource_queue_lock.contains(&resource){
+            println!("resource {:?} not in resource queue, adding it", resource.clone());
+            resource_queue_lock.push_back(resource.clone());
+        } else {
+            println!("resource {:?} already in resource queue, skipping", resource.clone());
+        }
+    }
+}
+
+/*
+pub async fn process2(worker_queue_mutex: Arc<Mutex<Vec<v1::Resource>>>, resource: v1::Resource, client: ConfigControllerClient<tonic::transport::Channel>, resource_queue_mutex: Arc<Mutex<VecDeque<v1::Resource>>> ) {
+    let mut worker_queue_lock = worker_queue_mutex.lock().await;
+    let worker_queue_clone = worker_queue_mutex.clone();
+    let resource_queue_clone = resource_queue_mutex.clone();
     if !worker_queue_lock.contains(&resource){
         worker_queue_lock.push(resource.clone());
         println!("got {:?}", resource);
@@ -95,15 +128,21 @@ pub async fn process(worker_queue_mutex: Arc<Mutex<Vec<v1::Resource>>>, resource
             worker_queue_lock.retain(|x| *x != resource.clone());
         });
     } else {
-        if !resource_queue.contains(&resource){
-            resource_queue.push_back(resource);
+        println!("resource {:?} already processed, trying to add it to resource queue", resource.clone());
+        let mut resource_queue_lock = resource_queue_clone.lock().await;
+        if !resource_queue_lock.contains(&resource){
+            println!("resource {:?} not in resource queue, adding it", resource.clone());
+            resource_queue_lock.push_back(resource.clone());
+        } else {
+            println!("resource {:?} already in resource queue, skipping", resource.clone());
         }
     }
 }
+*/
 
-pub async fn get_resource(client: &mut ConfigControllerClient<tonic::transport::Channel>, resource: v1::Resource){
+pub async fn get_resource(client: &mut ConfigControllerClient<tonic::transport::Channel>, resource: v1::Resource, result_sender: tokio::sync::mpsc::Sender<v1::Resource>){
     let mut client = client.clone();
-    let res_result: Result<tonic::Response<v1alpha1::VirtualNetwork>, tonic::Status> = client.get_virtual_network(resource).await;
+    let res_result: Result<tonic::Response<v1alpha1::VirtualNetwork>, tonic::Status> = client.get_virtual_network(resource.clone()).await;
     let res_resp: &mut tonic::Response<v1alpha1::VirtualNetwork> = &mut res_result.unwrap();
     let res: &mut v1alpha1::VirtualNetwork = res_resp.get_mut();
     println!("{}/{}", res.metadata.as_ref().unwrap().namespace(), res.metadata.as_ref().unwrap().name());
@@ -111,6 +150,8 @@ pub async fn get_resource(client: &mut ConfigControllerClient<tonic::transport::
     println!("sleeping for 30 sec");
     tokio::time::sleep(tokio::time::Duration::from_secs(30)).await;
     println!("done");
+    result_sender.send(resource.clone()).await;
+
 }
 
 /*
