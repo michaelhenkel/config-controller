@@ -13,6 +13,7 @@ use std::{thread, time::Duration};
 use tokio::sync::mpsc;
 use tokio::sync::mpsc::{Sender, Receiver};
 use tonic::transport::Endpoint;
+use crossbeam_channel::{unbounded, bounded, TryRecvError};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -20,9 +21,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .connect()
         .await?;
 
-    let mut sender_map: HashMap<String,Sender<v1::Resource>> = HashMap::new();
+    let mut sender_map: HashMap<String,crossbeam_channel::Sender<v1::Resource>> = HashMap::new();
 
-    let (virtual_network_sender, virtual_network_receiver): (Sender<v1::Resource>, Receiver<v1::Resource>) = mpsc::channel(100);
+    let (virtual_network_sender, virtual_network_receiver): (crossbeam_channel::Sender<v1::Resource>, crossbeam_channel::Receiver<v1::Resource>) = bounded(1);
     sender_map.insert("VirtualNetwork".to_string(), virtual_network_sender);
 
     let mut subscription_client = ConfigControllerClient::new(channel.clone());
@@ -39,7 +40,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-async fn subscribe(client: &mut ConfigControllerClient<Channel>, sender_map: &mut HashMap<String,Sender<v1::Resource>>) -> Result<(), Box<dyn Error>> {
+async fn subscribe(client: &mut ConfigControllerClient<Channel>, sender_map: &mut HashMap<String,crossbeam_channel::Sender<v1::Resource>>) -> Result<(), Box<dyn Error>> {
     println!("started subscriber_controller");
     let request = tonic::Request::new(SubscriptionRequest {
         name: get_node(),
@@ -54,7 +55,7 @@ async fn subscribe(client: &mut ConfigControllerClient<Channel>, sender_map: &mu
         println!("got resource");
         if let Some(sender) = sender_map.get(resource.kind.as_str()) {
             println!("sending resource");
-            sender.send(resource.clone()).await.unwrap();
+            sender.send(resource.clone()).unwrap();
         }
     }
     Ok(())

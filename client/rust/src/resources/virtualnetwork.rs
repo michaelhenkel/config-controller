@@ -14,9 +14,12 @@ use std::{thread, time};
 use futures;
 use futures::executor;
 use std::collections::VecDeque;
-use std::sync::Arc;
-use tokio::sync::Mutex;
+use std::sync::{Arc, Mutex};
+//use tokio::sync::Mutex;
 use crossbeam_channel::{unbounded, bounded, TryRecvError};
+use std::collections::HashMap;
+use std::vec::Vec;
+
 
 impl ProcessResource for v1alpha1::VirtualNetwork {
     fn get(&self, client: &mut ConfigControllerClient<Channel>) -> String { 
@@ -26,12 +29,12 @@ impl ProcessResource for v1alpha1::VirtualNetwork {
 
 
 pub struct VirtualNetworkController {
-    receiver: Receiver<v1::Resource>,
+    receiver: crossbeam_channel::Receiver<v1::Resource>,
     channel: tonic::transport::Channel
 }
 
 impl VirtualNetworkController {
-    pub fn new(channel: tonic::transport::Channel, receiver: Receiver<v1::Resource>) -> VirtualNetworkController {
+    pub fn new(channel: tonic::transport::Channel, receiver: crossbeam_channel::Receiver<v1::Resource>) -> VirtualNetworkController {
         VirtualNetworkController{
             channel: channel,
             receiver: receiver,
@@ -39,19 +42,25 @@ impl VirtualNetworkController {
     }
     pub async fn run(&mut self) -> Result<(), Box<dyn Error>> {
         println!("starting virtual_network_controller");
-        let (mut queue_sender, mut queue_receiver): (crossbeam_channel::Sender<v1::Resource>, crossbeam_channel::Receiver<v1::Resource>) = bounded(1);
-        let channel_watcher_thread = channel_watcher(&mut self.receiver, &mut queue_sender);
-        let queue_watcher_thread = queue_watcher(&mut queue_receiver);
-        futures::join!(channel_watcher_thread, queue_watcher_thread);
+        let (mut consumer_sender, mut consumer_receiver): (crossbeam_channel::Sender<v1::Resource>, crossbeam_channel::Receiver<v1::Resource>) = bounded(2);        
+        let queue_watcher_thread = queue_watcher(&mut self.receiver, &mut consumer_sender);
+        //let resource_consumer_thread = resource_consumer(&mut consumer_receiver);
+        futures::join!(queue_watcher_thread);
         Ok(())
     }
 }
 
-pub async fn queue_watcher(receiver: &mut crossbeam_channel::Receiver<v1::Resource>) {
+pub async fn queue_watcher(receiver: &mut crossbeam_channel::Receiver<v1::Resource>, consumer_sender: &mut crossbeam_channel::Sender<v1::Resource>) {
     println!("starting queue_watcher");
     let receiver_clone = receiver.clone();
+    let sender_clone = consumer_sender.clone();
     let mut resource_queue: VecDeque<v1::Resource> = VecDeque::new();
+
+    
     let _guard = thread::spawn(move || {
+        let worker_queue: Vec<v1::Resource> = Vec::new();
+        let worker_queue_mutex = Arc::new(Mutex::new(worker_queue));
+
         loop{
             match receiver_clone.try_recv() {
                 Ok(resource) => { 
@@ -62,64 +71,51 @@ pub async fn queue_watcher(receiver: &mut crossbeam_channel::Receiver<v1::Resour
                 },
                 Err(TryRecvError::Empty) => {
                     if !resource_queue.is_empty(){
-                        let mut resource = resource_queue.pop_front().unwrap();
-                        println!("found resource {:?} in queue", resource);
+                        let resource = resource_queue.pop_front().unwrap();
+                        let worker_queue_clone = worker_queue_mutex.clone();
+                        let mut worker_queue_lock = worker_queue_mutex.lock().unwrap();
+                        if !worker_queue_lock.contains(&resource){
+                            worker_queue_lock.push(resource.clone());
+                            println!("found resource {:?} in queue", resource.clone());
+                            let _join_handler = thread::spawn(move || {
+                                println!("consuming {:?} for 30 seconds", resource.clone());
+                                thread::sleep(time::Duration::from_secs(30));
+                                println!("done");
+                                let mut worker_queue_lock = worker_queue_clone.lock().unwrap();
+                                worker_queue_lock.retain(|x| *x != resource.clone());
+                            });
+                        } else {
+                            if !resource_queue.contains(&resource){
+                                resource_queue.push_back(resource);
+                            }
+                            thread::sleep(time::Duration::from_millis(1));
+                        }
                     } else {
+                        thread::sleep(time::Duration::from_millis(1));
                         continue;
                     }
                 },
                 _ => { continue; },
             }
-            /*
-            if let Ok(resource) =  receiver_clone.try_recv(){
-                println!("received resource 2 {:?}", resource);
-            }
-            */
         }
     });
 }
-        /*
-        match receiver.try_recv() {
-            Ok(resource) => { 
-                println!("received resource 2 {:?}", resource);
-                if !resource_queue.contains(&resource){
-                    resource_queue.push_back(resource);
-                }
-            },
-            Err(TryRecvError::Empty) => {
-                if !resource_queue.is_empty(){
-                    let mut resource = resource_queue.pop_front().unwrap();
-                    println!("found resource {:?} in queue", resource);
-                } else {
-                    continue;
-                }
-            },
-            _ => { continue; },
+
+pub async fn resource_consumer(receiver: &mut crossbeam_channel::Receiver<v1::Resource>) {
+    //let mut join_handler_map: HashMap<v1::Resource,std::thread::JoinHandle<()>> = HashMap::new();
+    //let mut join_vec: Vec<std::thread::JoinHandle<()> = Vec::new();
+    let receiver_clone = receiver.clone();
+    let _guard = thread::spawn(move || {
+        loop {
+            let resource = receiver_clone.recv().unwrap();
+            let _join_handler = thread::spawn(move || {
+                println!("consuming {:?} for 30 seconds", resource.clone());
+                thread::sleep(time::Duration::from_secs(30));
+                println!()
+            });
+
         }
-        */
-
-
-
-
-pub async fn channel_watcher(receiver: &mut Receiver<v1::Resource>, queue_send: &mut crossbeam_channel::Sender<v1::Resource>) -> Result<(), Box<dyn Error>> {
-    println!("starting channel_watcher");
-
-    let resource_queue: VecDeque<v1::Resource> = VecDeque::new();
-    let resource_queue_mutex = Arc::new(Mutex::new(resource_queue));
-    let resource_queue_mutex_clone = Arc::clone(&resource_queue_mutex);
-    
-    loop {
-        let resource = receiver.recv().await.unwrap();
-        println!("received resource 1 {:?}", resource);
-        queue_send.send(resource).unwrap();
-    
-    }
-}
-
-pub fn resource_consumer(resource: &mut v1::Resource) -> Result<(), Box<dyn Error>> {
-    println!("consuming {:?} for 30 seconds", resource.clone());
-    thread::sleep(time::Duration::from_secs(30));
-    Ok(())
+    });
 }
 
 /*
