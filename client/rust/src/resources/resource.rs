@@ -6,10 +6,22 @@ use tokio::sync::Mutex;
 use crossbeam_channel::TryRecvError;
 use std::vec::Vec;
 use async_trait::async_trait;
+use std::error::Error;
+use crate::resources;
 
 #[async_trait]
 pub trait ResourceController {
     async fn process_resource(&mut self, client: &mut ConfigControllerClient<tonic::transport::Channel>, resource: v1::Resource, worker_queue_mutex: Arc<Mutex<Vec<v1::Resource>>>);
+    async fn run(&mut self, channel: tonic::transport::Channel, receiver: crossbeam_channel::Receiver<v1::Resource>) -> Result<(), Box<dyn Error>>;
+    fn to_trait(self) -> Box<dyn ResourceController + Send + Sync>;
+}
+
+pub fn get_controller(kind: String) -> Box<dyn ResourceController + Send + Sync>{
+    match kind.as_str() {
+        "VirtualNetwork" => Box::new(resources::virtualnetwork::VirtualNetworkController::new()),
+        "VirtualMachineInterface" => Box::new(resources::virtualmachineinterface::VirtualMachineInterfaceController::new()),
+        _ => Box::new(resources::virtualnetwork::VirtualNetworkController::new()),
+    }
 }
 
 pub async fn queue_watcher(channel: tonic::transport::Channel, receiver: crossbeam_channel::Receiver<v1::Resource>, resource_controller: Arc<Mutex<Box<dyn ResourceController + Send + Sync>>>) {

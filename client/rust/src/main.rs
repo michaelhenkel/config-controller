@@ -1,7 +1,6 @@
 use config_client::protos::github::com::michaelhenkel::config_controller::pkg::apis::v1::config_controller_client::ConfigControllerClient;
 use config_client::protos::github::com::michaelhenkel::config_controller::pkg::apis::v1::SubscriptionRequest;
 use config_client::protos::github::com::michaelhenkel::config_controller::pkg::apis::v1;
-use config_client::protos::ssd_git::juniper::net::contrail::cn2::contrail::pkg::apis::core::v1alpha1;
 use std::collections::HashMap;
 use tonic::transport::Channel;
 use std::error::Error;
@@ -9,11 +8,9 @@ use std::env;
 use std::vec::Vec;
 mod resources;
 mod queue;
-use std::{thread, time::Duration};
-use tokio::sync::mpsc;
-use tokio::sync::mpsc::{Sender, Receiver};
 use tonic::transport::Endpoint;
-use crossbeam_channel::{unbounded, bounded, TryRecvError};
+use crossbeam_channel::bounded;
+use crate::resources::resource::get_controller;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -25,20 +22,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let (virtual_network_sender, virtual_network_receiver): (crossbeam_channel::Sender<v1::Resource>, crossbeam_channel::Receiver<v1::Resource>) = bounded(1);
     sender_map.insert("VirtualNetwork".to_string(), virtual_network_sender);
+    let mut resource_controller = get_controller("VirtualNetwork".to_string());
+    let virtual_network_controller_thread = resource_controller.run(channel.clone(), virtual_network_receiver);
+
+    let (virtual_machine_interface_sender, virtual_machine_interface_receiver): (crossbeam_channel::Sender<v1::Resource>, crossbeam_channel::Receiver<v1::Resource>) = bounded(1);
+    sender_map.insert("VirtualMachineInterface".to_string(), virtual_machine_interface_sender);
+    let mut resource_controller = get_controller("VirtualMachineInterface".to_string());
+    let virtual_machine_interface_controller_thread = resource_controller.run(channel.clone(), virtual_machine_interface_receiver);
 
     let mut subscription_client = ConfigControllerClient::new(channel.clone());
-
-
-    
-    let mut virtual_network_controller = resources::virtualnetwork::VirtualNetworkController::new();
-    let virtual_network_controller_thread = virtual_network_controller.run(channel.clone(), virtual_network_receiver);
-
     let subscribe_thread = subscribe(&mut subscription_client, &mut sender_map);
 
-    futures::join!(subscribe_thread, virtual_network_controller_thread);
+    futures::join!(subscribe_thread, virtual_network_controller_thread, virtual_machine_interface_controller_thread);
 
     Ok(())
 }
+
 
 async fn subscribe(client: &mut ConfigControllerClient<Channel>, sender_map: &mut HashMap<String,crossbeam_channel::Sender<v1::Resource>>) -> Result<(), Box<dyn Error>> {
     println!("started subscriber_controller");

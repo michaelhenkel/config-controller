@@ -14,6 +14,7 @@ option go_package = "github.com/michaelhenkel/config-controller/pkg/apis/v1";
 service ConfigController {
     rpc SubscribeListWatch(SubscriptionRequest) returns (stream Resource);
     rpc GetVirtualNetwork(Resource) returns (ssd_git.juniper.net.contrail.cn2.contrail.pkg.apis.core.v1alpha1.VirtualNetwork);
+    rpc GetVirtualMachineInterface(Resource) returns (ssd_git.juniper.net.contrail.cn2.contrail.pkg.apis.core.v1alpha1.VirtualMachineInterface);
 }
 
 message SubscriptionRequest {

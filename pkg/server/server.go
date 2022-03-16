@@ -73,6 +73,18 @@ func (c *ConfigController) GetVirtualNetwork(ctx context.Context, res *pbv1.Reso
 	return nil, fmt.Errorf("cannot decode to VirtualNetwork")
 }
 
+func (c *ConfigController) GetVirtualMachineInterface(ctx context.Context, res *pbv1.Resource) (*contrail.VirtualMachineInterface, error) {
+	resource, err := c.resourceControllerMap[res.Kind].Get(res.Name, res.Namespace)
+	if err != nil {
+
+	}
+	obj, ok := resource.(*contrail.VirtualMachineInterface)
+	if ok {
+		return obj, nil
+	}
+	return nil, fmt.Errorf("cannot decode to VirtualMachineInterface")
+}
+
 func (c *ConfigController) SubscribeListWatch(req *pbv1.SubscriptionRequest, srv pbv1.ConfigController_SubscribeListWatchServer) error {
 	conn := make(chan pbv1.Resource)
 	c.SubscriptionManager.AddSubscription(req.Name, Subscription{
