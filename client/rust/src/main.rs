@@ -30,7 +30,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 
     
-    let mut virtual_network_controller = resources::virtualnetwork::VirtualNetworkController::new(channel.clone(), virtual_network_receiver);
+    let mut virtual_network_controller = resources::resource::ResourceController::new(channel.clone(), virtual_network_receiver);
     let virtual_network_controller_thread = virtual_network_controller.run();
 
     let subscribe_thread = subscribe(&mut subscription_client, &mut sender_map);

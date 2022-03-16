@@ -3,6 +3,7 @@ use config_client::protos::ssd_git::juniper::net::contrail::cn2::contrail::pkg::
 
 
 pub mod traits;
+pub mod resource;
 pub mod virtualnetwork;
 /*
 pub mod virtualrouter;
