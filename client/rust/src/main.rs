@@ -52,9 +52,9 @@ async fn subscribe(client: &mut ConfigControllerClient<Channel>, sender_map: &mu
         .into_inner();
 
     while let Some(resource) = stream.message().await? {
-        println!("got resource");
+        //println!("got resource");
         if let Some(sender) = sender_map.get(resource.kind.as_str()) {
-            println!("sending resource");
+            //println!("sending resource");
             sender.send(resource.clone()).unwrap();
         }
     }

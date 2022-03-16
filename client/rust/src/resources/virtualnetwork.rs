@@ -56,8 +56,6 @@ pub async fn queue_watcher(receiver: &mut crossbeam_channel::Receiver<v1::Resour
     let client = ConfigControllerClient::new(channel.clone());
     let resource_queue: VecDeque<v1::Resource> = VecDeque::new();
     let resource_queue_mutex: Arc<Mutex<VecDeque<v1::Resource>>> = Arc::new(Mutex::new(resource_queue));
-
-    
     tokio::spawn(async move {
         let worker_queue: Vec<v1::Resource> = Vec::new();
         let worker_queue_mutex = Arc::new(Mutex::new(worker_queue));
@@ -65,39 +63,44 @@ pub async fn queue_watcher(receiver: &mut crossbeam_channel::Receiver<v1::Resour
         loop{
             match receiver_clone.try_recv() {
                 Ok(resource) => { 
-                    println!("received resource 2 {:?}", resource);
+                    //println!("received resource 2 {:?}", resource);
                     let mut resource_queue_lock = resource_queue_mutex.lock().await;
                     if !resource_queue_lock.contains(&resource){
+                        //println!("{:?} pushing to resource queue", resource.clone());
                         resource_queue_lock.push_back(resource);
                     }
                 },
                 Err(TryRecvError::Empty) => {
                     let mut resource_queue_lock = resource_queue_mutex.lock().await;
-                    let mut resource_queue_lock_clone = resource_queue_lock.clone();
                     let worker_queue_mutex_clone = worker_queue_mutex.clone();
                     if !resource_queue_lock.is_empty(){
-                        let resource = resource_queue_lock.get(0).unwrap();
+                        //println!("resource queue not empty");
+                        let resource = resource_queue_lock.pop_front().unwrap();
+                        //if resource_queue_lock.is_empty(){
+                        //    println!("resource queue is now empty");
+                        //}
+                        //let resource = resource_queue_lock.get(0).unwrap();
                         let mut worker_queue_lock = worker_queue_mutex.lock().await;
-                        if !worker_queue_lock.contains(resource){
-                            let resource = resource_queue_lock.pop_front().unwrap();
+                        if !worker_queue_lock.contains(&resource){
                             worker_queue_lock.push(resource.clone());
                             let mut client = client.clone();
                             get_resource(&mut client, resource.clone(), worker_queue_mutex_clone).await;
                         } else {
-                            println!("{:?} already in worker queue, trying to push it to resource queue", resource.clone());
-                            if !resource_queue_lock_clone.contains(resource){
-                                println!("{:?} not in resource queue, pushing it", resource.clone());
-                                resource_queue_lock_clone.push_back(resource.clone());
-                                println!("{:?} pushed to resource queue", resource.clone());
+                            //println!("{:?} already in worker queue, trying to push it to resource queue", resource.clone());
+                            if !resource_queue_lock.contains(&resource){
+                                //println!("{:?} not in resource queue, pushing it", resource.clone());
+                                resource_queue_lock.push_back(resource.clone());
+                                //println!("{:?} pushed to resource queue", resource.clone());
                             } else {
-                                println!("{:?} already in resource queue, skipping", resource.clone());
+                                //println!("{:?} already in resource queue, skipping", resource.clone());
                             }
-                            tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+                            tokio::time::sleep(tokio::time::Duration::from_millis(1)).await;
                             //thread::sleep(time::Duration::from_millis(1));
                         }
                     } else {
-                        thread::sleep(time::Duration::from_millis(1));
-                        continue;
+                        //println!("resource queue empty");
+                        tokio::time::sleep(tokio::time::Duration::from_millis(1)).await;
+                        //continue;
                     }
                 },
                 _ => { continue; },
