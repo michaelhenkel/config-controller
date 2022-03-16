@@ -20,12 +20,9 @@ use crossbeam_channel::{unbounded, bounded, TryRecvError};
 use std::collections::HashMap;
 use std::vec::Vec;
 
-
-
-
 pub struct ResourceController {
     receiver: crossbeam_channel::Receiver<v1::Resource>,
-    channel: tonic::transport::Channel
+    channel: tonic::transport::Channel,
 }
 
 impl ResourceController {
@@ -69,6 +66,7 @@ impl ResourceController {
                             if !worker_queue_lock.contains(&resource){
                                 worker_queue_lock.push(resource.clone());
                                 let mut client = client.clone();
+                                //ProcessResource::get_resource(&self, resource.clone());
                                 process_resource(&mut client, resource.clone(), worker_queue_mutex_clone).await;
                             } else {
                                 if !resource_queue_lock.contains(&resource){
