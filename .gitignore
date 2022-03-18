@@ -9,6 +9,7 @@ bin
 testbin/*
 config-controller
 client/rust/target
+__debug_bin
 
 # Test binary, build with `go test -c`
 *.test

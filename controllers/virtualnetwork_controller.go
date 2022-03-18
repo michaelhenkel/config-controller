@@ -134,36 +134,6 @@ func (r *VirtualNetworkReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, err
 	}
 
-	/*
-
-		if err := r.Client.Get(ctx, types.NamespacedName{Name: req.Name, Namespace: req.Namespace}, res); err != nil {
-			if errors.IsNotFound(err) {
-				klog.Info("resource not found")
-				return ctrl.Result{}, nil
-			} else {
-				klog.Error(err)
-				return ctrl.Result{}, err
-			}
-		}
-
-		r.dbClient.Add(&VirtualNetwork{
-			VirtualNetwork: res,
-		})
-
-		nodesForResource := FromResourceToNodes(res.Name, req.Namespace, res.Kind, []string{"VirtualMachine", "VirtualMachineInterface", "VirtualRouter"}, r.dbClient)
-		for _, node := range nodesForResource {
-			klog.Infof("%s %s/%s -> %s", res.Kind, res.Namespace, res.Name, node.GetName())
-			nodeResource := &NodeResource{
-				Resource: &pbv1.Resource{
-					Name:      res.Name,
-					Namespace: res.Namespace,
-					Kind:      res.Kind,
-				},
-				Node: node.GetName(),
-			}
-			r.nodeResourceChan <- *nodeResource
-		}
-	*/
 	return ctrl.Result{}, nil
 }
 

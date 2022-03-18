@@ -129,27 +129,6 @@ func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		klog.Error(err)
 		return ctrl.Result{}, err
 	}
-	/*
-		if err := r.Client.Get(ctx, types.NamespacedName{Name: req.Name, Namespace: req.Namespace}, res); err != nil {
-			if errors.IsNotFound(err) {
-				klog.Info("resource not found")
-				SendToNode(res.Name, req.Namespace, res.Kind, []string{"VirtualRouter"}, r.dbClient, r.nodeResourceChan)
-				r.dbClient.Del(&VirtualMachine{
-					VirtualMachine: res,
-				})
-				return ctrl.Result{}, nil
-			} else {
-				klog.Error(err)
-				return ctrl.Result{}, err
-			}
-		}
-
-		r.dbClient.Add(&VirtualMachine{
-			VirtualMachine: res,
-		})
-
-		SendToNode(res.Name, req.Namespace, res.Kind, []string{"VirtualRouter"}, r.dbClient, r.nodeResourceChan)
-	*/
 
 	return ctrl.Result{}, nil
 }
