@@ -1,6 +1,7 @@
 package graph
 
 import (
+	"fmt"
 	"sync"
 )
 
@@ -126,16 +127,19 @@ func (g *ItemGraph) TraverseFrom(from Node, to *Node, f func(*Node), filterList 
 		visited[*node] = true
 		if node.Kind != to.Kind {
 			near := g.edges[*node]
-			for _, j := range near {
+			for j := range near {
+				if j.Kind == "VirtualMachineInterface" {
+					fmt.Println("")
+				}
 				ignore := false
 				if filter {
 					if _, ok := filterMap[j.Kind]; !ok {
 						ignore = true
 					}
 				}
-				if !visited[*j] && !ignore {
-					q.Enqueue(*j)
-					visited[*j] = true
+				if !visited[j] && !ignore {
+					q.Enqueue(j)
+					visited[j] = true
 				}
 			}
 		}

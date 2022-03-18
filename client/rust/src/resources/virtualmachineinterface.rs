@@ -19,16 +19,22 @@ impl ResourceInterface for VirtualMachineInterfaceController{
         let mut client = client.clone();
         tokio::spawn(async move {
             let res_result: Result<tonic::Response<v1alpha1::VirtualMachineInterface>, tonic::Status> = client.get_virtual_machine_interface(resource.clone()).await;
-            let res_resp: &mut tonic::Response<v1alpha1::VirtualMachineInterface> = &mut res_result.unwrap();
-            let res: &mut v1alpha1::VirtualMachineInterface = res_resp.get_mut();
-            println!("##########VirtualMachineInterface##########");
-            println!("{}/{}", res.metadata.as_ref().unwrap().namespace(), res.metadata.as_ref().unwrap().name());
-            println!("labels {:?}", res.metadata.as_ref().unwrap().labels);
-            //println!("sleeping for 1 sec");
-            //tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-            let mut worker_queue_lock = worker_queue_mutex.lock().await;
-            worker_queue_lock.retain(|x| *x != resource.clone());
-            println!("done");
+            match res_result {
+                Ok(mut res) => {
+                    //let res_resp: &mut tonic::Response<v1alpha1::VirtualMachineInterface> = &mut resource.unwrap();
+                    let res: &mut v1alpha1::VirtualMachineInterface = res.get_mut();
+                    println!("##########VirtualMachineInterface##########");
+                    println!("{}/{}", res.metadata.as_ref().unwrap().namespace(), res.metadata.as_ref().unwrap().name());
+                    println!("labels {:?}", res.metadata.as_ref().unwrap().labels);
+                    let mut worker_queue_lock = worker_queue_mutex.lock().await;
+                    worker_queue_lock.retain(|x| *x != resource.clone());
+                    println!("done");
+                },
+                Err(err) => {
+                    println!("err {:?}", err);
+                },
+            }
+
         });
     }
 }

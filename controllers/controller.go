@@ -18,8 +18,10 @@ type ResourceController interface {
 	SetupWithManager(mgr ctrl.Manager) error
 	New(client client.Client, contrailClient *contrailClientset.Clientset, scheme *runtime.Scheme, dbClient *db.DB, nodeResourceChan chan NodeResource) ResourceController
 	InitNodes() ([]db.Resource, error)
+	List(node string) error
 	Get(name, namespace string) (interface{}, error)
 	PathToNode() []string
+	ReversePath() []string
 	GetClient() client.Client
 	GetDBClient() *db.DB
 	GetChannel() chan NodeResource
@@ -50,6 +52,22 @@ func SendToNode(name, namespace, kind string, filter []string, dbClient *db.DB, 
 			Node: node.GetName(),
 		}
 		nodeResourceChan <- *nodeResource
+	}
+}
+
+func List(node string, kind string, resourceController ResourceController) {
+	resourceList := FromNodeToResources(node, kind, resourceController.ReversePath(), resourceController.GetDBClient())
+	for _, resource := range resourceList {
+		klog.Infof("%s %s/%s -> %s", kind, resource.GetNamespace(), resource.GetName, node)
+		nodeResource := &NodeResource{
+			Resource: &pbv1.Resource{
+				Name:      resource.GetName(),
+				Namespace: resource.GetNamespace(),
+				Kind:      resource.GetKind(),
+			},
+			Node: node,
+		}
+		resourceController.GetChannel() <- *nodeResource
 	}
 }
 

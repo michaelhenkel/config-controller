@@ -71,6 +71,10 @@ func (res *VirtualMachineInterfaceReconciler) PathToNode() []string {
 	return []string{"VirtualMachine", "VirtualRouter"}
 }
 
+func (res *VirtualMachineInterfaceReconciler) ReversePath() []string {
+	return []string{"VirtualMachine", "VirtualMachineInterface"}
+}
+
 func (res *VirtualMachineInterfaceReconciler) GetClient() client.Client {
 	return res.Client
 }
@@ -163,4 +167,9 @@ func (r *VirtualMachineInterfaceReconciler) Get(name, namespace string) (interfa
 		return nil, err
 	}
 	return res, nil
+}
+
+func (r *VirtualMachineInterfaceReconciler) List(node string) error {
+	List(node, "VirtualMachineInterface", r)
+	return nil
 }

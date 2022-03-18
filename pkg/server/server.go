@@ -73,6 +73,17 @@ func (c *ConfigController) GetVirtualNetwork(ctx context.Context, res *pbv1.Reso
 	return nil, fmt.Errorf("cannot decode to VirtualNetwork")
 }
 
+func (c *ConfigController) List(node string) error {
+	for n, k := range c.resourceControllerMap {
+		if n == "VirtualMachineInterface" || n == "VirtualNetwork" {
+			if err := k.List(node); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 func (c *ConfigController) GetVirtualMachineInterface(ctx context.Context, res *pbv1.Resource) (*contrail.VirtualMachineInterface, error) {
 	resource, err := c.resourceControllerMap[res.Kind].Get(res.Name, res.Namespace)
 	if err != nil {
@@ -113,6 +124,7 @@ func (c *ConfigController) SubscribeListWatch(req *pbv1.SubscriptionRequest, srv
 		}
 	}()
 	klog.Info("sending new subscription msg")
+	c.List(req.Name)
 	//c.k8sClient.NewSubscriber(req.Name, conn)
 	<-stopChan
 	return nil

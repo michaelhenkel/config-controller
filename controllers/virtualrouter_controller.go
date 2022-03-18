@@ -63,6 +63,10 @@ func (res *VirtualRouterReconciler) PathToNode() []string {
 	return []string{}
 }
 
+func (res *VirtualRouterReconciler) ReversePath() []string {
+	return []string{}
+}
+
 func (res *VirtualRouterReconciler) GetClient() client.Client {
 	return res.Client
 }
@@ -150,4 +154,9 @@ func (r *VirtualRouterReconciler) Get(name, namespace string) (interface{}, erro
 		return nil, err
 	}
 	return res, nil
+}
+
+func (r *VirtualRouterReconciler) List(node string) error {
+	List(node, "VirtualRouterInterface", r)
+	return nil
 }
