@@ -10,7 +10,7 @@ use std::pin::Pin;
 mod resources;
 mod queue;
 use tonic::transport::Endpoint;
-use crossbeam_channel::bounded;
+use crossbeam_channel::unbounded;
 use crate::resources::resource::{get_res, res_list, ResourceController};
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -27,7 +27,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut join_handles = Vec::new();
     for r in res_list(){
-        let (sender, receiver): (crossbeam_channel::Sender<v1::Resource>, crossbeam_channel::Receiver<v1::Resource>) = bounded(1);
+        let (sender, receiver): (crossbeam_channel::Sender<v1::Resource>, crossbeam_channel::Receiver<v1::Resource>) = unbounded();
         //let sender_map = sender_map.clone();
         let mut sender_map = sender_map.lock().await;
         sender_map.insert(r.to_string(), sender);
@@ -61,11 +61,12 @@ async fn subscribe(channel: tonic::transport::Channel, sender_map: Arc<Mutex<Has
 
     while let Some(resource) = stream.message().await? {
         println!("got resource");
-        let sender_map = sender_map.clone();
+        //let sender_map = sender_map.clone();
         let sender_map = sender_map.lock().await;
         if let Some(sender) = sender_map.get(resource.kind.as_str()) {
-            println!("sending resource");
+            //println!("sending resource to controller {:?}", resource.clone());
             sender.send(resource.clone()).unwrap();
+            //println!("done sending");
         }
     }
     Ok(())

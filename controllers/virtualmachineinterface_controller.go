@@ -131,6 +131,11 @@ func (r *VirtualMachineInterfaceReconciler) Reconcile(ctx context.Context, req c
 		}
 	}
 	klog.Infof("got %s %s/%s", res.Kind, res.Namespace, res.Name)
+
+	r.dbClient.Add(&VirtualMachineInterface{
+		VirtualMachineInterface: res,
+	})
+
 	nodesForResource := FromResourceToNodes(res.Name, req.Namespace, res.Kind, []string{"VirtualMachine", "VirtualRouter"}, r.dbClient)
 	for _, node := range nodesForResource {
 		klog.Infof("%s %s/%s -> %s", res.Kind, res.Namespace, res.Name, node.GetName())

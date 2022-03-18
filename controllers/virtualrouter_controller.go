@@ -121,6 +121,10 @@ func (r *VirtualRouterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			return ctrl.Result{}, err
 		}
 	}
+
+	r.dbClient.Add(&VirtualRouter{
+		VirtualRouter: res,
+	})
 	//klog.Infof("got %s %s/%s", res.Kind, res.Namespace, res.Name)
 
 	return ctrl.Result{}, nil

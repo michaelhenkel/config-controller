@@ -8,6 +8,7 @@ use std::vec::Vec;
 use std::error::Error;
 use crate::resources;
 
+const INTERVAL: u64 = 1;
 
 pub struct ResourceController {
 
@@ -18,7 +19,8 @@ impl ResourceController {
         Self{}
     }
     pub async fn run(self, channel: tonic::transport::Channel, receiver: crossbeam_channel::Receiver<v1::Resource>, resource_interface: Box<dyn ResourceInterface + Send>, name: String) -> Result<(), Box<dyn Error + Send >>{
-        println!("starting ResoureController for {:?}", name);
+        let duration = tokio::time::Duration::from_millis(INTERVAL);
+        println!("starting ResoureController for {}", name);
         let receiver_clone = receiver.clone();
         let client = ConfigControllerClient::new(channel.clone());
         let resource_queue: VecDeque<v1::Resource> = VecDeque::new();
@@ -29,7 +31,7 @@ impl ResourceController {
             loop{
                 match receiver_clone.try_recv() {
                     Ok(resource) => { 
-                        println!("got resource");
+                        //println!("ResoureController {} got resource", name);
                         let mut resource_queue_lock = resource_queue_mutex.lock().await;
                         if !resource_queue_lock.contains(&resource){
                             resource_queue_lock.push_back(resource);
@@ -49,15 +51,18 @@ impl ResourceController {
                                 if !resource_queue_lock.contains(&resource){
                                     resource_queue_lock.push_back(resource.clone());
                                 }
-                                println!("${:?} is sleeping for 2 secs", name);
-                                tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+                                //println!("${:?} is sleeping for 2 secs", name);
+                                tokio::time::sleep(duration).await;
                             }
                         } else {
-                            println!("${:?} is sleeping for 2 secs", name);
-                            tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+                            //println!("${:?} is sleeping for 2 secs", name);
+                            tokio::time::sleep(duration).await;
                         }
                     },
-                    _ => { continue; },
+                    _ => {
+                        println!("error");
+                        continue; 
+                    },
                 }
             }            
         });

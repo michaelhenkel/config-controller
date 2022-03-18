@@ -122,6 +122,11 @@ func (r *VirtualNetworkReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			return ctrl.Result{}, err
 		}
 	}
+
+	r.dbClient.Add(&VirtualNetwork{
+		VirtualNetwork: res,
+	})
+
 	nodesForResource := FromResourceToNodes(res.Name, req.Namespace, res.Kind, []string{"VirtualMachine", "VirtualMachineInterface", "VirtualRouter"}, r.dbClient)
 	for _, node := range nodesForResource {
 		klog.Infof("%s %s/%s -> %s", res.Kind, res.Namespace, res.Name, node.GetName())

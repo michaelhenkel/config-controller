@@ -118,6 +118,11 @@ func (r *VirtualMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			return ctrl.Result{}, err
 		}
 	}
+
+	r.dbClient.Add(&VirtualMachine{
+		VirtualMachine: res,
+	})
+
 	//klog.Infof("got %s %s/%s", res.Kind, res.Namespace, res.Name)
 	nodesForResource := FromResourceToNodes(res.Name, req.Namespace, res.Kind, []string{"VirtualRouter"}, r.dbClient)
 	for _, node := range nodesForResource {

@@ -14,7 +14,7 @@ type Node struct {
 // ItemGraph the Items graph
 type ItemGraph struct {
 	nodes map[Node]*Node
-	edges map[Node][]*Node
+	edges map[Node]map[Node]*Node
 	lock  sync.RWMutex
 }
 
@@ -36,14 +36,65 @@ func (g *ItemGraph) GetNode(node Node) (*Node, bool) {
 	return n, ok
 }
 
+// AddNode adds a node to the graph
+func (g *ItemGraph) DelNode(node Node) {
+	g.lock.Lock()
+	delete(g.nodes, node)
+	g.lock.Unlock()
+}
+
+// AddEdge adds an edge to the graph
+func (g *ItemGraph) EdgeExists(n1, n2 *Node) bool {
+	node1_2 := false
+	node2_1 := false
+	g.lock.Lock()
+	if g.edges != nil {
+		if edge, ok := g.edges[*n1]; ok {
+			if _, ok := edge[*n2]; ok {
+				node1_2 = true
+			}
+		}
+		if edge, ok := g.edges[*n2]; ok {
+			if _, ok := edge[*n1]; ok {
+				node2_1 = true
+			}
+		}
+	}
+	g.lock.Unlock()
+	return node1_2 && node2_1
+}
+
+// AddEdge adds an edge to the graph
+func (g *ItemGraph) DelEdge(node *Node) {
+	g.lock.Lock()
+	if g.edges != nil {
+		edges := g.edges[*node]
+		for n, _ := range edges {
+			if edge, ok := g.edges[n]; ok {
+				delete(edge, *node)
+			}
+		}
+		delete(g.edges, *node)
+	}
+	g.lock.Unlock()
+}
+
 // AddEdge adds an edge to the graph
 func (g *ItemGraph) AddEdge(n1, n2 *Node) {
 	g.lock.Lock()
 	if g.edges == nil {
-		g.edges = make(map[Node][]*Node)
+		g.edges = make(map[Node]map[Node]*Node)
 	}
-	g.edges[*n1] = append(g.edges[*n1], n2)
-	g.edges[*n2] = append(g.edges[*n2], n1)
+	if edge, ok := g.edges[*n1]; !ok {
+		g.edges[*n1] = map[Node]*Node{*n2: n2}
+	} else {
+		edge[*n2] = n2
+	}
+	if edge, ok := g.edges[*n2]; !ok {
+		g.edges[*n2] = map[Node]*Node{*n1: n1}
+	} else {
+		edge[*n1] = n1
+	}
 	g.lock.Unlock()
 }
 
@@ -75,8 +126,7 @@ func (g *ItemGraph) TraverseFrom(from Node, to *Node, f func(*Node), filterList 
 		visited[*node] = true
 		if node.Kind != to.Kind {
 			near := g.edges[*node]
-			for i := 0; i < len(near); i++ {
-				j := near[i]
+			for _, j := range near {
 				ignore := false
 				if filter {
 					if _, ok := filterMap[j.Kind]; !ok {

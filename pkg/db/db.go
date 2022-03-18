@@ -25,10 +25,11 @@ func (d *DB) AddHandlerInterface(kind string, handlerInterface HandlerInterface)
 }
 
 type control struct {
-	action    action
-	kind      string
-	namespace string
-	name      string
+	action     action
+	kind       string
+	namespace  string
+	name       string
+	references [][]string
 }
 
 type DB struct {
@@ -145,22 +146,46 @@ func (d *DB) Start() error {
 	return nil
 }
 
-func (d *DB) Add(kind, namespace, name string) {
-	d.ctrlChan <- control{
-		action:    add,
-		kind:      kind,
-		namespace: namespace,
-		name:      name,
+func (d *DB) Add(item Resource) {
+	ctrl := control{
+		action:     add,
+		kind:       item.GetKind(),
+		namespace:  item.GetNamespace(),
+		name:       item.GetName(),
+		references: item.GetReferences(),
 	}
+	d.ctrlChan <- ctrl
+}
+
+func (d *DB) Del(item Resource) {
+	ctrl := control{
+		action:    del,
+		kind:      item.GetKind(),
+		namespace: item.GetNamespace(),
+		name:      item.GetName(),
+	}
+	d.ctrlChan <- ctrl
 }
 
 func (d *DB) run() {
 	for ctrl := range d.ctrlChan {
 		switch ctrl.action {
 		case add:
-			if _, ok := d.graph.GetNode(graph.Node{Name: ctrl.name, Namespace: ctrl.namespace, Kind: ctrl.kind}); !ok {
+			srcNode, ok := d.graph.GetNode(graph.Node{Name: ctrl.name, Namespace: ctrl.namespace, Kind: ctrl.kind})
+			if !ok {
 				d.graph.AddNode(graph.Node{Name: ctrl.name, Namespace: ctrl.namespace, Kind: ctrl.kind})
+				srcNode, _ = d.graph.GetNode(graph.Node{Name: ctrl.name, Namespace: ctrl.namespace, Kind: ctrl.kind})
 			}
+			referenceList := ctrl.references
+			for _, ref := range referenceList {
+				if dstNode, ok := d.graph.GetNode(graph.Node{Name: ref[0], Namespace: ref[1], Kind: ref[2]}); ok {
+					d.graph.AddEdge(srcNode, dstNode)
+					klog.Infof("added edge from %s %s to %s %s", srcNode.Kind, srcNode.Name, dstNode.Kind, dstNode.Name)
+				}
+			}
+		case del:
+			d.graph.DelEdge(&graph.Node{Name: ctrl.name, Namespace: ctrl.namespace, Kind: ctrl.kind})
+			d.graph.DelNode(graph.Node{Name: ctrl.name, Namespace: ctrl.namespace, Kind: ctrl.kind})
 		}
 	}
 }

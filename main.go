@@ -138,7 +138,8 @@ func main() {
 		setupLog.Error(err, "unable to set up ready check")
 		os.Exit(1)
 	}
-
+	setupLog.Info("starting db")
+	go dbClient.Start()
 	setupLog.Info("starting grpc server")
 	go serverClient.Start(controllers.ControllerMap, nodeResourceChan)
 	setupLog.Info("starting manager")
