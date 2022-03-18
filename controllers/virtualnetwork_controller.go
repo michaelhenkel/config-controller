@@ -19,9 +19,7 @@ package controllers
 import (
 	"context"
 
-	pbv1 "github.com/michaelhenkel/config-controller/pkg/apis/v1"
 	"github.com/michaelhenkel/config-controller/pkg/db"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -59,6 +57,22 @@ func (res *VirtualNetwork) GetReferences() [][]string {
 
 func init() {
 	ControllerMap["VirtualNetwork"] = &VirtualNetworkReconciler{}
+}
+
+func (res *VirtualNetworkReconciler) PathToNode() []string {
+	return []string{"VirtualMachine", "VirtualMachineInterface", "VirtualRouter"}
+}
+
+func (res *VirtualNetworkReconciler) GetClient() client.Client {
+	return res.Client
+}
+
+func (res *VirtualNetworkReconciler) GetDBClient() *db.DB {
+	return res.dbClient
+}
+
+func (res *VirtualNetworkReconciler) GetChannel() chan NodeResource {
+	return res.nodeResourceChan
 }
 
 func (r *VirtualNetworkReconciler) New(client client.Client, contrailClient *contrailClientset.Clientset, scheme *runtime.Scheme, dbClient *db.DB, nodeResourceChan chan NodeResource) ResourceController {
@@ -113,33 +127,43 @@ func (r *VirtualNetworkReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	res := &contrail.VirtualNetwork{}
 
-	if err := r.Client.Get(ctx, types.NamespacedName{Name: req.Name, Namespace: req.Namespace}, res); err != nil {
-		if errors.IsNotFound(err) {
-			klog.Info("resource not found")
-			return ctrl.Result{}, nil
-		} else {
-			klog.Error(err)
-			return ctrl.Result{}, err
-		}
-	}
-
-	r.dbClient.Add(&VirtualNetwork{
+	if err := Process(ctx, r, req, &VirtualNetwork{
 		VirtualNetwork: res,
-	})
-
-	nodesForResource := FromResourceToNodes(res.Name, req.Namespace, res.Kind, []string{"VirtualMachine", "VirtualMachineInterface", "VirtualRouter"}, r.dbClient)
-	for _, node := range nodesForResource {
-		klog.Infof("%s %s/%s -> %s", res.Kind, res.Namespace, res.Name, node.GetName())
-		nodeResource := &NodeResource{
-			Resource: &pbv1.Resource{
-				Name:      res.Name,
-				Namespace: res.Namespace,
-				Kind:      res.Kind,
-			},
-			Node: node.GetName(),
-		}
-		r.nodeResourceChan <- *nodeResource
+	}, res); err != nil {
+		klog.Error(err)
+		return ctrl.Result{}, err
 	}
+
+	/*
+
+		if err := r.Client.Get(ctx, types.NamespacedName{Name: req.Name, Namespace: req.Namespace}, res); err != nil {
+			if errors.IsNotFound(err) {
+				klog.Info("resource not found")
+				return ctrl.Result{}, nil
+			} else {
+				klog.Error(err)
+				return ctrl.Result{}, err
+			}
+		}
+
+		r.dbClient.Add(&VirtualNetwork{
+			VirtualNetwork: res,
+		})
+
+		nodesForResource := FromResourceToNodes(res.Name, req.Namespace, res.Kind, []string{"VirtualMachine", "VirtualMachineInterface", "VirtualRouter"}, r.dbClient)
+		for _, node := range nodesForResource {
+			klog.Infof("%s %s/%s -> %s", res.Kind, res.Namespace, res.Name, node.GetName())
+			nodeResource := &NodeResource{
+				Resource: &pbv1.Resource{
+					Name:      res.Name,
+					Namespace: res.Namespace,
+					Kind:      res.Kind,
+				},
+				Node: node.GetName(),
+			}
+			r.nodeResourceChan <- *nodeResource
+		}
+	*/
 	return ctrl.Result{}, nil
 }
 

@@ -20,7 +20,6 @@ import (
 	"context"
 
 	"github.com/michaelhenkel/config-controller/pkg/db"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -58,6 +57,22 @@ func (res *VirtualRouter) GetReferences() [][]string {
 
 func init() {
 	ControllerMap["VirtualRouter"] = &VirtualRouterReconciler{}
+}
+
+func (res *VirtualRouterReconciler) PathToNode() []string {
+	return []string{}
+}
+
+func (res *VirtualRouterReconciler) GetClient() client.Client {
+	return res.Client
+}
+
+func (res *VirtualRouterReconciler) GetDBClient() *db.DB {
+	return res.dbClient
+}
+
+func (res *VirtualRouterReconciler) GetChannel() chan NodeResource {
+	return res.nodeResourceChan
 }
 
 func (r *VirtualRouterReconciler) New(client client.Client, contrailClient *contrailClientset.Clientset, scheme *runtime.Scheme, dbClient *db.DB, nodeResourceChan chan NodeResource) ResourceController {
@@ -112,21 +127,28 @@ func (r *VirtualRouterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	res := &contrail.VirtualRouter{}
 
-	if err := r.Client.Get(ctx, types.NamespacedName{Name: req.Name, Namespace: req.Namespace}, res); err != nil {
-		if errors.IsNotFound(err) {
-			klog.Info("resource not found")
-			return ctrl.Result{}, nil
-		} else {
-			klog.Error(err)
-			return ctrl.Result{}, err
-		}
-	}
-
-	r.dbClient.Add(&VirtualRouter{
+	if err := Process(ctx, r, req, &VirtualRouter{
 		VirtualRouter: res,
-	})
-	//klog.Infof("got %s %s/%s", res.Kind, res.Namespace, res.Name)
+	}, res); err != nil {
+		klog.Error(err)
+		return ctrl.Result{}, err
+	}
+	/*
+		if err := r.Client.Get(ctx, types.NamespacedName{Name: req.Name, Namespace: req.Namespace}, res); err != nil {
+			if errors.IsNotFound(err) {
+				klog.Info("resource not found")
+				return ctrl.Result{}, nil
+			} else {
+				klog.Error(err)
+				return ctrl.Result{}, err
+			}
+		}
 
+		r.dbClient.Add(&VirtualRouter{
+			VirtualRouter: res,
+		})
+		//klog.Infof("got %s %s/%s", res.Kind, res.Namespace, res.Name)
+	*/
 	return ctrl.Result{}, nil
 }
 
