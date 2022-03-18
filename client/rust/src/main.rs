@@ -6,11 +6,16 @@ use tonic::transport::Channel;
 use std::error::Error;
 use std::env;
 use std::vec::Vec;
+use std::pin::Pin;
 mod resources;
 mod queue;
 use tonic::transport::Endpoint;
 use crossbeam_channel::bounded;
-use crate::resources::resource::get_controller;
+use crate::resources::resource::{get_res, res_list, ResourceController};
+use std::sync::Arc;
+use tokio::sync::Mutex;
+use futures;
+use futures::future::TryFutureExt;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -18,29 +23,41 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .connect()
         .await?;
 
-    let mut sender_map: HashMap<String,crossbeam_channel::Sender<v1::Resource>> = HashMap::new();
+    let mut sender_map: Arc<Mutex<HashMap<String,crossbeam_channel::Sender<v1::Resource>>>> = Arc::new(Mutex::new(HashMap::new()));
 
-    let (virtual_network_sender, virtual_network_receiver): (crossbeam_channel::Sender<v1::Resource>, crossbeam_channel::Receiver<v1::Resource>) = bounded(1);
-    sender_map.insert("VirtualNetwork".to_string(), virtual_network_sender);
-    let mut resource_controller = get_controller("VirtualNetwork".to_string());
-    let virtual_network_controller_thread = resource_controller.run(channel.clone(), virtual_network_receiver);
+    let mut join_handles = Vec::new();
+    for r in res_list(){
+        let (sender, receiver): (crossbeam_channel::Sender<v1::Resource>, crossbeam_channel::Receiver<v1::Resource>) = bounded(1);
+        let sender_map = sender_map.clone();
+        let mut sender_map = sender_map.lock().await;
+        sender_map.insert(r.to_string(), sender);
+        let rc = ResourceController::new();
+        let res = get_res(r);
+        let run_res = rc.run(channel.clone(), receiver, res).map_err(|_| "Unable to get book".to_string());
+        let join_handle = tokio::task::spawn(run_res);
+        join_handles.push(join_handle);
+    }
+    
 
-    let (virtual_machine_interface_sender, virtual_machine_interface_receiver): (crossbeam_channel::Sender<v1::Resource>, crossbeam_channel::Receiver<v1::Resource>) = bounded(1);
-    sender_map.insert("VirtualMachineInterface".to_string(), virtual_machine_interface_sender);
-    let mut resource_controller = get_controller("VirtualMachineInterface".to_string());
-    let virtual_machine_interface_controller_thread = resource_controller.run(channel.clone(), virtual_machine_interface_receiver);
 
-    let mut subscription_client = ConfigControllerClient::new(channel.clone());
-    let subscribe_thread = subscribe(&mut subscription_client, &mut sender_map);
+    //let mut subscription_client = ConfigControllerClient::new(channel.clone());
+    let subscribe_thread = subscribe(channel.clone(), sender_map).map_err(|_| "Unable to get book".to_string());
+    let join_handle = tokio::task::spawn(subscribe_thread);
 
-    futures::join!(subscribe_thread, virtual_network_controller_thread, virtual_machine_interface_controller_thread);
+    join_handles.push(join_handle);
+    futures::future::join_all(join_handles).await;
+    //futures::join!(subscribe_thread, virtual_network_controller_thread, virtual_machine_interface_controller_thread);
+
 
     Ok(())
 }
 
 
-async fn subscribe(client: &mut ConfigControllerClient<Channel>, sender_map: &mut HashMap<String,crossbeam_channel::Sender<v1::Resource>>) -> Result<(), Box<dyn Error>> {
+
+//async fn subscribe(client: &mut ConfigControllerClient<Channel>, sender_map: &mut HashMap<String,crossbeam_channel::Sender<v1::Resource>>) -> Result<(), Box<dyn Error>> {
+async fn subscribe(channel: tonic::transport::Channel, sender_map: Arc<Mutex<HashMap<String,crossbeam_channel::Sender<v1::Resource>>>>) -> Result<(), Box<dyn Error>> {
     println!("started subscriber_controller");
+    let mut client = ConfigControllerClient::new(channel.clone());
     let request = tonic::Request::new(SubscriptionRequest {
         name: get_node(),
     });
@@ -52,6 +69,8 @@ async fn subscribe(client: &mut ConfigControllerClient<Channel>, sender_map: &mu
 
     while let Some(resource) = stream.message().await? {
         //println!("got resource");
+        let sender_map = sender_map.clone();
+        let sender_map = sender_map.lock().await;
         if let Some(sender) = sender_map.get(resource.kind.as_str()) {
             //println!("sending resource");
             sender.send(resource.clone()).unwrap();
@@ -59,7 +78,6 @@ async fn subscribe(client: &mut ConfigControllerClient<Channel>, sender_map: &mu
     }
     Ok(())
 }
-
 fn get_node() -> String {
     if env::args().len() > 0 {
         let args: Vec<String> = env::args().collect();
