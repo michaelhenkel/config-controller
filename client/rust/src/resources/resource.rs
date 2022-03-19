@@ -71,7 +71,7 @@ impl ResourceController {
 }
 
 pub trait ResourceInterface: Send {
-    fn process(&self, client: &mut ConfigControllerClient<tonic::transport::Channel>, resource: v1::Resource, worker_queue_mutex: Arc<Mutex<Vec<v1::Resource>>>);
+    fn process(&self, client: &mut ConfigControllerClient<tonic::transport::Channel>, resource: v1::Resource, worker_queue_mutex: Arc<Mutex<Vec<v1::Resource>>>) -> Result<(), Box<dyn Error + Send >>;
 
 }
 
@@ -79,6 +79,7 @@ pub fn res_list() -> Vec<String> {
     vec![
         "VirtualNetwork".to_string(),
         "VirtualMachineInterface".to_string(),
+        "VirtualMachine".to_string(),
     ]
 }
 
@@ -86,6 +87,7 @@ pub fn get_res(name: String) -> Box<dyn ResourceInterface + Send> {
     match name.as_str() {
         "VirtualNetwork" => Box::new(resources::virtualnetwork::VirtualNetworkController::new()),
         "VirtualMachineInterface" => Box::new(resources::virtualmachineinterface::VirtualMachineInterfaceController::new()),
+        "VirtualMachine" => Box::new(resources::virtualmachine::VirtualMachineController::new()),
         _ => Box::new(resources::virtualnetwork::VirtualNetworkController::new()),
     }
 }

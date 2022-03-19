@@ -10,6 +10,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/klog/v2"
 	contrail "ssd-git.juniper.net/contrail/cn2/contrail/pkg/apis/core/v1alpha1"
 )
@@ -61,21 +62,9 @@ func New(subscriptionManager *SubscriptionManager, resourceControllerMap map[str
 	return s
 }
 
-func (c *ConfigController) GetVirtualNetwork(ctx context.Context, res *pbv1.Resource) (*contrail.VirtualNetwork, error) {
-	resource, err := c.resourceControllerMap[res.Kind].Get(res.Name, res.Namespace)
-	if err != nil {
-
-	}
-	obj, ok := resource.(*contrail.VirtualNetwork)
-	if ok {
-		return obj, nil
-	}
-	return nil, fmt.Errorf("cannot decode to VirtualNetwork")
-}
-
 func (c *ConfigController) List(node string) error {
 	for n, k := range c.resourceControllerMap {
-		if n == "VirtualMachineInterface" || n == "VirtualNetwork" {
+		if n == "VirtualMachineInterface" || n == "VirtualNetwork" || n == "VirtualMachine" {
 			if err := k.List(node); err != nil {
 				return err
 			}
@@ -84,16 +73,49 @@ func (c *ConfigController) List(node string) error {
 	return nil
 }
 
+func (c *ConfigController) GetVirtualNetwork(ctx context.Context, res *pbv1.Resource) (*contrail.VirtualNetwork, error) {
+	resource, err := c.resourceControllerMap[res.Kind].Get(res.Name, res.Namespace)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			err = status.Error(codes.NotFound, "resource was not found")
+		}
+		return nil, err
+	}
+	obj, ok := resource.(*contrail.VirtualNetwork)
+	if ok {
+		return obj, nil
+	}
+	return nil, fmt.Errorf("cannot decode to VirtualNetwork")
+}
+
 func (c *ConfigController) GetVirtualMachineInterface(ctx context.Context, res *pbv1.Resource) (*contrail.VirtualMachineInterface, error) {
 	resource, err := c.resourceControllerMap[res.Kind].Get(res.Name, res.Namespace)
 	if err != nil {
-
+		if errors.IsNotFound(err) {
+			err = status.Error(codes.NotFound, "resource was not found")
+		}
+		return nil, err
 	}
 	obj, ok := resource.(*contrail.VirtualMachineInterface)
 	if ok {
 		return obj, nil
 	}
 	return nil, fmt.Errorf("cannot decode to VirtualMachineInterface")
+}
+
+func (c *ConfigController) GetVirtualMachine(ctx context.Context, res *pbv1.Resource) (*contrail.VirtualMachine, error) {
+	resource, err := c.resourceControllerMap[res.Kind].Get(res.Name, res.Namespace)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			err = status.Error(codes.NotFound, "resource was not found")
+		}
+		return nil, err
+	}
+	obj, ok := resource.(*contrail.VirtualMachine)
+	if ok {
+		return obj, nil
+	}
+	return nil, fmt.Errorf("cannot decode to VirtualMachine")
 }
 
 func (c *ConfigController) SubscribeListWatch(req *pbv1.SubscriptionRequest, srv pbv1.ConfigController_SubscribeListWatchServer) error {

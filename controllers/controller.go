@@ -58,7 +58,7 @@ func SendToNode(name, namespace, kind string, filter []string, dbClient *db.DB, 
 func List(node string, kind string, resourceController ResourceController) {
 	resourceList := FromNodeToResources(node, kind, resourceController.ReversePath(), resourceController.GetDBClient())
 	for _, resource := range resourceList {
-		klog.Infof("%s %s/%s -> %s", kind, resource.GetNamespace(), resource.GetName, node)
+		klog.Infof("%s %s/%s -> %s", kind, resource.GetNamespace(), resource.GetName(), node)
 		nodeResource := &NodeResource{
 			Resource: &pbv1.Resource{
 				Name:      resource.GetName(),

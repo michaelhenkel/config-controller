@@ -15,6 +15,10 @@ service ConfigController {
     rpc SubscribeListWatch(SubscriptionRequest) returns (stream Resource);
     rpc GetVirtualNetwork(Resource) returns (ssd_git.juniper.net.contrail.cn2.contrail.pkg.apis.core.v1alpha1.VirtualNetwork);
     rpc GetVirtualMachineInterface(Resource) returns (ssd_git.juniper.net.contrail.cn2.contrail.pkg.apis.core.v1alpha1.VirtualMachineInterface);
+    rpc GetVirtualMachine(Resource) returns (ssd_git.juniper.net.contrail.cn2.contrail.pkg.apis.core.v1alpha1.VirtualMachine);
+    rpc GetVirtualRouter(Resource) returns (ssd_git.juniper.net.contrail.cn2.contrail.pkg.apis.core.v1alpha1.VirtualRouter);
+    rpc GetRoutingInstance(Resource) returns (ssd_git.juniper.net.contrail.cn2.contrail.pkg.apis.core.v1alpha1.RoutingInstance);
+    rpc GetInstanceIP(Resource) returns (ssd_git.juniper.net.contrail.cn2.contrail.pkg.apis.core.v1alpha1.InstanceIP);
 }
 
 message SubscriptionRequest {

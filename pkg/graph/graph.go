@@ -1,7 +1,6 @@
 package graph
 
 import (
-	"fmt"
 	"sync"
 )
 
@@ -128,9 +127,6 @@ func (g *ItemGraph) TraverseFrom(from Node, to *Node, f func(*Node), filterList 
 		if node.Kind != to.Kind {
 			near := g.edges[*node]
 			for j := range near {
-				if j.Kind == "VirtualMachineInterface" {
-					fmt.Println("")
-				}
 				ignore := false
 				if filter {
 					if _, ok := filterMap[j.Kind]; !ok {
