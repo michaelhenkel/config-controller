@@ -147,7 +147,6 @@ func (c *ConfigController) SubscribeListWatch(req *pbv1.SubscriptionRequest, srv
 	}()
 	klog.Info("sending new subscription msg")
 	c.List(req.Name)
-	//c.k8sClient.NewSubscriber(req.Name, conn)
 	<-stopChan
 	return nil
 }
