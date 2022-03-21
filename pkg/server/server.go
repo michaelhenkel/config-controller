@@ -155,6 +155,7 @@ func (c *ConfigController) SubscribeListWatch(req *pbv1.SubscriptionRequest, srv
 func (c *Client) EventWatcher() {
 	for nodeResource := range c.nodeResourceChan {
 		if subscriber, ok := c.subscriptionManager.Subscriptions[nodeResource.Node]; ok {
+			nodeResource.Action = pbv1.Resource_ADD
 			subscriber.Channel <- *nodeResource.Resource
 		}
 	}

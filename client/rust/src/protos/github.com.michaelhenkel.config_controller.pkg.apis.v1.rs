@@ -11,6 +11,18 @@ pub struct Resource {
     pub name: ::prost::alloc::string::String,
     #[prost(string, tag = "3")]
     pub namespace: ::prost::alloc::string::String,
+    #[prost(enumeration = "resource::Action", tag = "4")]
+    pub action: i32,
+}
+/// Nested message and enum types in `Resource`.
+pub mod resource {
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+    #[repr(i32)]
+    pub enum Action {
+        Add = 0,
+        Del = 1,
+        Retry = 2,
+    }
 }
 #[doc = r" Generated client implementations."]
 pub mod config_controller_client {
