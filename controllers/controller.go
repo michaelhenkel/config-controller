@@ -28,7 +28,7 @@ type ResourceController interface {
 }
 
 type NodeResource struct {
-	*pbv1.Resource
+	Key  *pbv1.Key
 	Node string
 }
 
@@ -44,7 +44,7 @@ func SendToNode(name, namespace, kind string, filter []string, dbClient *db.DB, 
 	for _, node := range dbClient.FindFromNodeToKind(name, namespace, kind, "VirtualRouter", filter) {
 		klog.Infof("%s %s/%s -> %s", kind, namespace, name, node.GetName())
 		nodeResource := &NodeResource{
-			Resource: &pbv1.Resource{
+			Key: &pbv1.Key{
 				Name:      name,
 				Namespace: namespace,
 				Kind:      kind,
@@ -60,7 +60,7 @@ func List(node string, kind string, resourceController ResourceController) {
 	for _, resource := range resourceList {
 		klog.Infof("%s %s/%s -> %s", kind, resource.GetNamespace(), resource.GetName(), node)
 		nodeResource := &NodeResource{
-			Resource: &pbv1.Resource{
+			Key: &pbv1.Key{
 				Name:      resource.GetName(),
 				Namespace: resource.GetNamespace(),
 				Kind:      resource.GetKind(),

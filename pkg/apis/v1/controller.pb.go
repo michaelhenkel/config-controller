@@ -10,7 +10,7 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
-	_ "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	math "math"
 	v1alpha1 "ssd-git.juniper.net/contrail/cn2/contrail/pkg/apis/core/v1alpha1"
 )
@@ -26,32 +26,66 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
-type Resource_Action int32
+type Action_Action int32
 
 const (
-	Resource_ADD   Resource_Action = 0
-	Resource_DEL   Resource_Action = 1
-	Resource_RETRY Resource_Action = 2
+	Action_ADD   Action_Action = 0
+	Action_DEL   Action_Action = 1
+	Action_RETRY Action_Action = 2
+	Action_GET   Action_Action = 3
 )
 
-var Resource_Action_name = map[int32]string{
+var Action_Action_name = map[int32]string{
 	0: "ADD",
 	1: "DEL",
 	2: "RETRY",
+	3: "GET",
 }
 
-var Resource_Action_value = map[string]int32{
+var Action_Action_value = map[string]int32{
 	"ADD":   0,
 	"DEL":   1,
 	"RETRY": 2,
+	"GET":   3,
 }
 
-func (x Resource_Action) String() string {
-	return proto.EnumName(Resource_Action_name, int32(x))
+func (x Action_Action) String() string {
+	return proto.EnumName(Action_Action_name, int32(x))
 }
 
-func (Resource_Action) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_ed7f10298fa1d90f, []int{1, 0}
+func (Action_Action) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_ed7f10298fa1d90f, []int{2, 0}
+}
+
+type KeyAction_Action int32
+
+const (
+	KeyAction_ADD   KeyAction_Action = 0
+	KeyAction_DEL   KeyAction_Action = 1
+	KeyAction_RETRY KeyAction_Action = 2
+	KeyAction_GET   KeyAction_Action = 3
+)
+
+var KeyAction_Action_name = map[int32]string{
+	0: "ADD",
+	1: "DEL",
+	2: "RETRY",
+	3: "GET",
+}
+
+var KeyAction_Action_value = map[string]int32{
+	"ADD":   0,
+	"DEL":   1,
+	"RETRY": 2,
+	"GET":   3,
+}
+
+func (x KeyAction_Action) String() string {
+	return proto.EnumName(KeyAction_Action_name, int32(x))
+}
+
+func (KeyAction_Action) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_ed7f10298fa1d90f, []int{3, 0}
 }
 
 type SubscriptionRequest struct {
@@ -93,21 +127,167 @@ func (m *SubscriptionRequest) GetName() string {
 	return ""
 }
 
+type Key struct {
+	Kind                 string   `protobuf:"bytes,1,opt,name=kind,proto3" json:"kind,omitempty"`
+	Name                 string   `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Namespace            string   `protobuf:"bytes,3,opt,name=namespace,proto3" json:"namespace,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *Key) Reset()         { *m = Key{} }
+func (m *Key) String() string { return proto.CompactTextString(m) }
+func (*Key) ProtoMessage()    {}
+func (*Key) Descriptor() ([]byte, []int) {
+	return fileDescriptor_ed7f10298fa1d90f, []int{1}
+}
+
+func (m *Key) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Key.Unmarshal(m, b)
+}
+func (m *Key) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Key.Marshal(b, m, deterministic)
+}
+func (m *Key) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Key.Merge(m, src)
+}
+func (m *Key) XXX_Size() int {
+	return xxx_messageInfo_Key.Size(m)
+}
+func (m *Key) XXX_DiscardUnknown() {
+	xxx_messageInfo_Key.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Key proto.InternalMessageInfo
+
+func (m *Key) GetKind() string {
+	if m != nil {
+		return m.Kind
+	}
+	return ""
+}
+
+func (m *Key) GetName() string {
+	if m != nil {
+		return m.Name
+	}
+	return ""
+}
+
+func (m *Key) GetNamespace() string {
+	if m != nil {
+		return m.Namespace
+	}
+	return ""
+}
+
+type Action struct {
+	Action               Action_Action `protobuf:"varint,1,opt,name=action,proto3,enum=github.com.michaelhenkel.config_controller.pkg.apis.v1.Action_Action" json:"action,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
+	XXX_unrecognized     []byte        `json:"-"`
+	XXX_sizecache        int32         `json:"-"`
+}
+
+func (m *Action) Reset()         { *m = Action{} }
+func (m *Action) String() string { return proto.CompactTextString(m) }
+func (*Action) ProtoMessage()    {}
+func (*Action) Descriptor() ([]byte, []int) {
+	return fileDescriptor_ed7f10298fa1d90f, []int{2}
+}
+
+func (m *Action) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Action.Unmarshal(m, b)
+}
+func (m *Action) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Action.Marshal(b, m, deterministic)
+}
+func (m *Action) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Action.Merge(m, src)
+}
+func (m *Action) XXX_Size() int {
+	return xxx_messageInfo_Action.Size(m)
+}
+func (m *Action) XXX_DiscardUnknown() {
+	xxx_messageInfo_Action.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Action proto.InternalMessageInfo
+
+func (m *Action) GetAction() Action_Action {
+	if m != nil {
+		return m.Action
+	}
+	return Action_ADD
+}
+
+type KeyAction struct {
+	Key                  *Key             `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Action               KeyAction_Action `protobuf:"varint,2,opt,name=action,proto3,enum=github.com.michaelhenkel.config_controller.pkg.apis.v1.KeyAction_Action" json:"action,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
+	XXX_unrecognized     []byte           `json:"-"`
+	XXX_sizecache        int32            `json:"-"`
+}
+
+func (m *KeyAction) Reset()         { *m = KeyAction{} }
+func (m *KeyAction) String() string { return proto.CompactTextString(m) }
+func (*KeyAction) ProtoMessage()    {}
+func (*KeyAction) Descriptor() ([]byte, []int) {
+	return fileDescriptor_ed7f10298fa1d90f, []int{3}
+}
+
+func (m *KeyAction) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_KeyAction.Unmarshal(m, b)
+}
+func (m *KeyAction) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_KeyAction.Marshal(b, m, deterministic)
+}
+func (m *KeyAction) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_KeyAction.Merge(m, src)
+}
+func (m *KeyAction) XXX_Size() int {
+	return xxx_messageInfo_KeyAction.Size(m)
+}
+func (m *KeyAction) XXX_DiscardUnknown() {
+	xxx_messageInfo_KeyAction.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_KeyAction proto.InternalMessageInfo
+
+func (m *KeyAction) GetKey() *Key {
+	if m != nil {
+		return m.Key
+	}
+	return nil
+}
+
+func (m *KeyAction) GetAction() KeyAction_Action {
+	if m != nil {
+		return m.Action
+	}
+	return KeyAction_ADD
+}
+
 type Resource struct {
-	Kind                 string          `protobuf:"bytes,1,opt,name=kind,proto3" json:"kind,omitempty"`
-	Name                 string          `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Namespace            string          `protobuf:"bytes,3,opt,name=namespace,proto3" json:"namespace,omitempty"`
-	Action               Resource_Action `protobuf:"varint,4,opt,name=action,proto3,enum=github.com.michaelhenkel.config_controller.pkg.apis.v1.Resource_Action" json:"action,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
-	XXX_unrecognized     []byte          `json:"-"`
-	XXX_sizecache        int32           `json:"-"`
+	// Types that are valid to be assigned to Resource:
+	//	*Resource_VirtualNetwork
+	//	*Resource_VirtualMachineInterface
+	//	*Resource_VirtualRouter
+	//	*Resource_VirtualMachine
+	//	*Resource_InstanceIP
+	//	*Resource_RoutingInstance
+	//	*Resource_Namespace
+	Resource             isResource_Resource `protobuf_oneof:"resource"`
+	XXX_NoUnkeyedLiteral struct{}            `json:"-"`
+	XXX_unrecognized     []byte              `json:"-"`
+	XXX_sizecache        int32               `json:"-"`
 }
 
 func (m *Resource) Reset()         { *m = Resource{} }
 func (m *Resource) String() string { return proto.CompactTextString(m) }
 func (*Resource) ProtoMessage()    {}
 func (*Resource) Descriptor() ([]byte, []int) {
-	return fileDescriptor_ed7f10298fa1d90f, []int{1}
+	return fileDescriptor_ed7f10298fa1d90f, []int{4}
 }
 
 func (m *Resource) XXX_Unmarshal(b []byte) error {
@@ -128,37 +308,128 @@ func (m *Resource) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_Resource proto.InternalMessageInfo
 
-func (m *Resource) GetKind() string {
-	if m != nil {
-		return m.Kind
-	}
-	return ""
+type isResource_Resource interface {
+	isResource_Resource()
 }
 
-func (m *Resource) GetName() string {
-	if m != nil {
-		return m.Name
-	}
-	return ""
+type Resource_VirtualNetwork struct {
+	VirtualNetwork *v1alpha1.VirtualNetwork `protobuf:"bytes,1,opt,name=virtualNetwork,proto3,oneof"`
 }
 
-func (m *Resource) GetNamespace() string {
-	if m != nil {
-		return m.Namespace
-	}
-	return ""
+type Resource_VirtualMachineInterface struct {
+	VirtualMachineInterface *v1alpha1.VirtualMachineInterface `protobuf:"bytes,2,opt,name=virtualMachineInterface,proto3,oneof"`
 }
 
-func (m *Resource) GetAction() Resource_Action {
+type Resource_VirtualRouter struct {
+	VirtualRouter *v1alpha1.VirtualRouter `protobuf:"bytes,3,opt,name=virtualRouter,proto3,oneof"`
+}
+
+type Resource_VirtualMachine struct {
+	VirtualMachine *v1alpha1.VirtualMachine `protobuf:"bytes,4,opt,name=virtualMachine,proto3,oneof"`
+}
+
+type Resource_InstanceIP struct {
+	InstanceIP *v1alpha1.InstanceIP `protobuf:"bytes,5,opt,name=instanceIP,proto3,oneof"`
+}
+
+type Resource_RoutingInstance struct {
+	RoutingInstance *v1alpha1.RoutingInstance `protobuf:"bytes,6,opt,name=routingInstance,proto3,oneof"`
+}
+
+type Resource_Namespace struct {
+	Namespace *v1.Namespace `protobuf:"bytes,7,opt,name=namespace,proto3,oneof"`
+}
+
+func (*Resource_VirtualNetwork) isResource_Resource() {}
+
+func (*Resource_VirtualMachineInterface) isResource_Resource() {}
+
+func (*Resource_VirtualRouter) isResource_Resource() {}
+
+func (*Resource_VirtualMachine) isResource_Resource() {}
+
+func (*Resource_InstanceIP) isResource_Resource() {}
+
+func (*Resource_RoutingInstance) isResource_Resource() {}
+
+func (*Resource_Namespace) isResource_Resource() {}
+
+func (m *Resource) GetResource() isResource_Resource {
 	if m != nil {
-		return m.Action
+		return m.Resource
 	}
-	return Resource_ADD
+	return nil
+}
+
+func (m *Resource) GetVirtualNetwork() *v1alpha1.VirtualNetwork {
+	if x, ok := m.GetResource().(*Resource_VirtualNetwork); ok {
+		return x.VirtualNetwork
+	}
+	return nil
+}
+
+func (m *Resource) GetVirtualMachineInterface() *v1alpha1.VirtualMachineInterface {
+	if x, ok := m.GetResource().(*Resource_VirtualMachineInterface); ok {
+		return x.VirtualMachineInterface
+	}
+	return nil
+}
+
+func (m *Resource) GetVirtualRouter() *v1alpha1.VirtualRouter {
+	if x, ok := m.GetResource().(*Resource_VirtualRouter); ok {
+		return x.VirtualRouter
+	}
+	return nil
+}
+
+func (m *Resource) GetVirtualMachine() *v1alpha1.VirtualMachine {
+	if x, ok := m.GetResource().(*Resource_VirtualMachine); ok {
+		return x.VirtualMachine
+	}
+	return nil
+}
+
+func (m *Resource) GetInstanceIP() *v1alpha1.InstanceIP {
+	if x, ok := m.GetResource().(*Resource_InstanceIP); ok {
+		return x.InstanceIP
+	}
+	return nil
+}
+
+func (m *Resource) GetRoutingInstance() *v1alpha1.RoutingInstance {
+	if x, ok := m.GetResource().(*Resource_RoutingInstance); ok {
+		return x.RoutingInstance
+	}
+	return nil
+}
+
+func (m *Resource) GetNamespace() *v1.Namespace {
+	if x, ok := m.GetResource().(*Resource_Namespace); ok {
+		return x.Namespace
+	}
+	return nil
+}
+
+// XXX_OneofWrappers is for the internal use of the proto package.
+func (*Resource) XXX_OneofWrappers() []interface{} {
+	return []interface{}{
+		(*Resource_VirtualNetwork)(nil),
+		(*Resource_VirtualMachineInterface)(nil),
+		(*Resource_VirtualRouter)(nil),
+		(*Resource_VirtualMachine)(nil),
+		(*Resource_InstanceIP)(nil),
+		(*Resource_RoutingInstance)(nil),
+		(*Resource_Namespace)(nil),
+	}
 }
 
 func init() {
-	proto.RegisterEnum("github.com.michaelhenkel.config_controller.pkg.apis.v1.Resource_Action", Resource_Action_name, Resource_Action_value)
+	proto.RegisterEnum("github.com.michaelhenkel.config_controller.pkg.apis.v1.Action_Action", Action_Action_name, Action_Action_value)
+	proto.RegisterEnum("github.com.michaelhenkel.config_controller.pkg.apis.v1.KeyAction_Action", KeyAction_Action_name, KeyAction_Action_value)
 	proto.RegisterType((*SubscriptionRequest)(nil), "github.com.michaelhenkel.config_controller.pkg.apis.v1.SubscriptionRequest")
+	proto.RegisterType((*Key)(nil), "github.com.michaelhenkel.config_controller.pkg.apis.v1.Key")
+	proto.RegisterType((*Action)(nil), "github.com.michaelhenkel.config_controller.pkg.apis.v1.Action")
+	proto.RegisterType((*KeyAction)(nil), "github.com.michaelhenkel.config_controller.pkg.apis.v1.KeyAction")
 	proto.RegisterType((*Resource)(nil), "github.com.michaelhenkel.config_controller.pkg.apis.v1.Resource")
 }
 
@@ -167,39 +438,52 @@ func init() {
 }
 
 var fileDescriptor_ed7f10298fa1d90f = []byte{
-	// 509 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xcc, 0x95, 0x41, 0x6f, 0xd3, 0x30,
-	0x14, 0xc7, 0xf1, 0x36, 0x0a, 0xb5, 0x04, 0x0a, 0xe6, 0x52, 0x45, 0x1c, 0xa6, 0x4a, 0x48, 0xe3,
-	0x30, 0x87, 0x16, 0x09, 0xed, 0xc8, 0x58, 0xa7, 0xaa, 0xa2, 0x40, 0x09, 0x08, 0x34, 0x2e, 0x95,
-	0xeb, 0xbe, 0x25, 0x26, 0xa9, 0x1d, 0x6c, 0xa7, 0x7c, 0x1c, 0x4e, 0x13, 0xe2, 0x23, 0x70, 0xe3,
-	0x63, 0xf0, 0x71, 0x90, 0xd3, 0xa6, 0xd9, 0x0a, 0xa7, 0x25, 0x87, 0x9d, 0xf2, 0x9e, 0xfd, 0x7f,
-	0xcf, 0xbf, 0x3c, 0xfd, 0xa5, 0x87, 0x3d, 0xae, 0xa4, 0xd5, 0x2a, 0x4d, 0x41, 0xd3, 0x4c, 0x2b,
-	0xab, 0xc8, 0xf3, 0x48, 0xd8, 0x38, 0x9f, 0x51, 0xae, 0x16, 0x74, 0x21, 0x78, 0xcc, 0x20, 0x8d,
-	0x41, 0x26, 0x90, 0x52, 0xae, 0xe4, 0xb9, 0x88, 0xa6, 0x97, 0x2b, 0x92, 0x88, 0xb2, 0x4c, 0x18,
-	0xba, 0xec, 0xf9, 0x13, 0x63, 0xe6, 0x87, 0x91, 0xb0, 0xf4, 0x4b, 0x2e, 0x45, 0x06, 0x9a, 0x4a,
-	0xb0, 0x41, 0xa1, 0x65, 0x22, 0x0d, 0xb8, 0xec, 0x57, 0x49, 0x96, 0x44, 0x81, 0x2b, 0x0b, 0xb8,
-	0xd2, 0x10, 0x2c, 0x7b, 0x2c, 0xcd, 0x62, 0xd6, 0x0b, 0x22, 0x90, 0xa0, 0x99, 0x85, 0xf9, 0x8a,
-	0xc4, 0xef, 0x26, 0x47, 0x86, 0x0a, 0xe5, 0xa4, 0xa5, 0x72, 0x5b, 0xd3, 0x7d, 0x82, 0x1f, 0xbe,
-	0xcf, 0x67, 0x86, 0x6b, 0x91, 0x59, 0xa1, 0x64, 0x08, 0x5f, 0x73, 0x30, 0x96, 0x10, 0xbc, 0x27,
-	0xd9, 0x02, 0x3a, 0x68, 0x1f, 0x1d, 0xb4, 0xc3, 0x22, 0xee, 0xfe, 0x41, 0xf8, 0x6e, 0x08, 0x46,
-	0xe5, 0x9a, 0x83, 0x13, 0x24, 0x42, 0xce, 0x4b, 0x81, 0x8b, 0x37, 0x45, 0x3b, 0x55, 0x11, 0x79,
-	0x84, 0xdb, 0xee, 0x6b, 0x32, 0xc6, 0xa1, 0xb3, 0x5b, 0x5c, 0x54, 0x07, 0x64, 0x8a, 0x5b, 0x8c,
-	0xbb, 0x77, 0x3b, 0x7b, 0xfb, 0xe8, 0xe0, 0x7e, 0x7f, 0x48, 0xaf, 0x37, 0x3c, 0x5a, 0x72, 0xd1,
-	0xe3, 0xa2, 0x5d, 0xb8, 0x6e, 0xdb, 0x7d, 0x8c, 0x5b, 0xab, 0x13, 0x72, 0x07, 0xef, 0x1e, 0x0f,
-	0x06, 0xde, 0x2d, 0x17, 0x0c, 0x4e, 0xc7, 0x1e, 0x22, 0x6d, 0x7c, 0x3b, 0x3c, 0xfd, 0x10, 0x9e,
-	0x79, 0x3b, 0xfd, 0xdf, 0x6d, 0xec, 0x9d, 0x14, 0x0f, 0x9c, 0x6c, 0xfa, 0x93, 0x0b, 0x84, 0xc9,
-	0x7a, 0x36, 0x33, 0x18, 0x0b, 0x63, 0x3f, 0x31, 0xcb, 0x63, 0xf2, 0xea, 0xba, 0x8c, 0xff, 0x99,
-	0xb3, 0xff, 0xa2, 0xee, 0x0f, 0x3f, 0x45, 0xe4, 0x07, 0xc2, 0x0f, 0x86, 0x60, 0x3f, 0x0a, 0x6d,
-	0x73, 0x96, 0xbe, 0x01, 0xfb, 0x4d, 0xe9, 0x84, 0xd4, 0xee, 0xec, 0x4f, 0xa8, 0x31, 0xf3, 0xe9,
-	0x96, 0x23, 0x69, 0x69, 0x42, 0xca, 0x65, 0xbf, 0x4a, 0x36, 0x0d, 0x9c, 0xcf, 0x68, 0xe9, 0x48,
-	0xba, 0xc5, 0xf4, 0x0b, 0x61, 0xbf, 0x22, 0x7d, 0xcd, 0x78, 0x2c, 0x24, 0x8c, 0xa4, 0x05, 0x7d,
-	0xee, 0xdc, 0x50, 0x1f, 0xf9, 0xac, 0x31, 0xe4, 0x7f, 0xe0, 0xae, 0x4e, 0x79, 0x7d, 0x7d, 0xa3,
-	0xa6, 0x5c, 0x32, 0x5d, 0x20, 0xec, 0x55, 0xa4, 0xa1, 0xca, 0x2d, 0xe8, 0x06, 0x40, 0xdf, 0x36,
-	0x06, 0xba, 0x46, 0xfa, 0x89, 0x30, 0x19, 0x82, 0x75, 0x99, 0x90, 0xd1, 0x48, 0x1a, 0xcb, 0x64,
-	0x23, 0x2e, 0x78, 0x57, 0x9f, 0x74, 0x1b, 0xea, 0x3b, 0xc2, 0xf7, 0x86, 0x60, 0xcb, 0x7c, 0x34,
-	0x69, 0x00, 0x73, 0x5c, 0x1f, 0xb3, 0xe2, 0x79, 0x79, 0xf4, 0xf9, 0xd2, 0xe2, 0x09, 0xae, 0x00,
-	0x05, 0x2b, 0xa0, 0xc3, 0x0a, 0xa8, 0xda, 0x20, 0xcb, 0xde, 0xac, 0x55, 0x6c, 0x82, 0x67, 0x7f,
-	0x03, 0x00, 0x00, 0xff, 0xff, 0x10, 0x76, 0xaf, 0x9b, 0xcb, 0x06, 0x00, 0x00,
+	// 713 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xcc, 0x56, 0xdf, 0x6e, 0xd3, 0x3e,
+	0x14, 0x6e, 0xda, 0xad, 0x5b, 0x3d, 0x6d, 0xbf, 0xfe, 0xcc, 0x05, 0x55, 0x05, 0x12, 0xea, 0x15,
+	0x5c, 0xcc, 0xa1, 0x45, 0x42, 0x93, 0x10, 0x17, 0xfb, 0x53, 0xb5, 0x53, 0xb7, 0x31, 0xcc, 0x04,
+	0x1a, 0x12, 0x1a, 0xa9, 0x7b, 0xd6, 0x9a, 0x66, 0x4e, 0x70, 0x9c, 0x4e, 0x45, 0xe2, 0x31, 0x10,
+	0x12, 0x57, 0x08, 0x10, 0x4f, 0xc0, 0x6b, 0xf0, 0x26, 0x3c, 0x04, 0x8a, 0x9b, 0x34, 0x69, 0x80,
+	0x9b, 0x25, 0x48, 0x5c, 0xc5, 0xb1, 0x8f, 0xbf, 0xef, 0x3b, 0xf6, 0x39, 0x9f, 0x8c, 0xaa, 0xcc,
+	0x11, 0x4a, 0x3a, 0xb6, 0x0d, 0x92, 0xb8, 0xd2, 0x51, 0x0e, 0xbe, 0x3f, 0xe4, 0x6a, 0xe4, 0xf7,
+	0x09, 0x73, 0x2e, 0xc8, 0x05, 0x67, 0x23, 0x0b, 0xec, 0x11, 0x88, 0x31, 0xd8, 0x84, 0x39, 0xe2,
+	0x9c, 0x0f, 0xcf, 0x92, 0x3b, 0xc6, 0x43, 0x62, 0xb9, 0xdc, 0x23, 0x93, 0x66, 0xfd, 0xd8, 0xf3,
+	0x06, 0x9b, 0x43, 0xae, 0xc8, 0x2b, 0x5f, 0x70, 0x17, 0x24, 0x11, 0xa0, 0x4c, 0x1d, 0x6b, 0x71,
+	0xdb, 0x64, 0xa2, 0x15, 0xff, 0xb8, 0xe3, 0xa1, 0x19, 0x6c, 0x33, 0x99, 0x23, 0xc1, 0x9c, 0x34,
+	0x2d, 0xdb, 0x1d, 0x59, 0x4d, 0x73, 0x08, 0x02, 0xa4, 0xa5, 0x60, 0x30, 0x53, 0x52, 0x6f, 0x8c,
+	0xb7, 0x3c, 0xc2, 0x9d, 0x20, 0x34, 0x8a, 0x4c, 0xc7, 0x34, 0xee, 0xa0, 0x6b, 0x4f, 0xfc, 0xbe,
+	0xc7, 0x24, 0x77, 0x15, 0x77, 0x04, 0x85, 0xd7, 0x3e, 0x78, 0x0a, 0x63, 0xb4, 0x24, 0xac, 0x0b,
+	0xa8, 0x19, 0xb7, 0x8c, 0xdb, 0x15, 0xaa, 0xc7, 0x8d, 0x1e, 0x2a, 0xf5, 0x60, 0x1a, 0x2c, 0x8d,
+	0xb9, 0x18, 0x44, 0x4b, 0xc1, 0x78, 0x1e, 0x5e, 0x8c, 0xc3, 0xf1, 0x0d, 0x54, 0x09, 0xbe, 0x9e,
+	0x6b, 0x31, 0xa8, 0x95, 0xf4, 0x42, 0x3c, 0xd1, 0x78, 0x6f, 0xa0, 0xf2, 0x36, 0x0b, 0x28, 0xf1,
+	0x0b, 0x54, 0xb6, 0xf4, 0x48, 0x43, 0x6e, 0xb4, 0xda, 0xe4, 0x6a, 0x27, 0x48, 0x66, 0x78, 0xe1,
+	0x87, 0x86, 0xa0, 0x0d, 0x32, 0x27, 0x5a, 0x41, 0xa5, 0xed, 0xbd, 0xbd, 0x6a, 0x21, 0x18, 0xec,
+	0xb5, 0x0f, 0xaa, 0x06, 0xae, 0xa0, 0x65, 0xda, 0x3e, 0xa1, 0xa7, 0xd5, 0x62, 0x30, 0xd7, 0x69,
+	0x9f, 0x54, 0x4b, 0x8d, 0x1f, 0x06, 0xaa, 0xf4, 0x60, 0x1a, 0xee, 0x39, 0x44, 0xa5, 0x31, 0x4c,
+	0xb5, 0xb2, 0xb5, 0xd6, 0x83, 0xab, 0x2a, 0xeb, 0xc1, 0x94, 0x06, 0x38, 0xf8, 0xe5, 0x3c, 0xd7,
+	0xa2, 0xce, 0xb5, 0x9b, 0x01, 0x31, 0x9f, 0x74, 0xbf, 0x97, 0xd1, 0x2a, 0x05, 0xcf, 0xf1, 0x25,
+	0x03, 0xfc, 0x06, 0x6d, 0x4c, 0xb8, 0x54, 0xbe, 0x65, 0x1f, 0x81, 0xba, 0x74, 0xe4, 0x38, 0x4c,
+	0xfc, 0x98, 0x78, 0xde, 0xe0, 0x2c, 0x55, 0x9c, 0x24, 0xaa, 0x47, 0xc2, 0x44, 0x2b, 0xfe, 0x99,
+	0xab, 0x0c, 0x4a, 0x8e, 0x44, 0xc5, 0x49, 0x9e, 0x2e, 0xe0, 0x76, 0x0b, 0x34, 0xc5, 0x84, 0xdf,
+	0x19, 0xe8, 0x7a, 0x38, 0x75, 0x68, 0xb1, 0x11, 0x17, 0xb0, 0x2f, 0x14, 0xc8, 0xf3, 0xa0, 0x7c,
+	0x8a, 0x5a, 0xc5, 0x69, 0x6e, 0x2a, 0xd2, 0x04, 0xdd, 0x02, 0xfd, 0x13, 0x37, 0xbe, 0x44, 0xeb,
+	0xe1, 0x12, 0x75, 0x7c, 0x05, 0x52, 0xd7, 0xf2, 0x5a, 0xeb, 0x51, 0x6e, 0x62, 0x66, 0xb0, 0xdd,
+	0x02, 0x5d, 0xe4, 0x49, 0x5c, 0x46, 0xa8, 0xa9, 0xb6, 0x94, 0xf3, 0x65, 0x84, 0xb8, 0x89, 0xcb,
+	0x08, 0x67, 0xb0, 0x40, 0x88, 0x0b, 0x4f, 0x59, 0x82, 0xc1, 0xfe, 0x71, 0x6d, 0x59, 0xf3, 0x1e,
+	0x64, 0xe7, 0xdd, 0x9f, 0x63, 0x76, 0x0b, 0x34, 0xc1, 0x80, 0xdf, 0xa2, 0xff, 0xa4, 0xe3, 0x2b,
+	0x2e, 0x86, 0x51, 0x48, 0xad, 0xac, 0x49, 0x1f, 0x67, 0x27, 0xa5, 0x8b, 0xc0, 0xdd, 0x02, 0x4d,
+	0x73, 0xe1, 0x87, 0x49, 0xaf, 0x5a, 0xd1, 0xc4, 0x37, 0xc9, 0xcc, 0x3d, 0x03, 0xc4, 0x08, 0x90,
+	0x1c, 0x45, 0x41, 0xdd, 0x42, 0xc2, 0xcc, 0x76, 0x10, 0x5a, 0x95, 0x61, 0x0b, 0xb5, 0x3e, 0x57,
+	0x50, 0x75, 0x57, 0xb7, 0xee, 0xee, 0xbc, 0x73, 0xf1, 0x57, 0x03, 0xe1, 0xd0, 0x66, 0xfb, 0x70,
+	0xc0, 0x3d, 0xf5, 0xcc, 0x52, 0x6c, 0x84, 0x7b, 0x57, 0xed, 0xfe, 0xdf, 0x58, 0x76, 0x7d, 0x3b,
+	0xb3, 0x95, 0xdc, 0x35, 0xf0, 0x27, 0x03, 0xfd, 0xdf, 0x01, 0xb5, 0xd8, 0xac, 0x38, 0x8b, 0xef,
+	0xd5, 0x73, 0xf7, 0x0e, 0xfc, 0xcd, 0x40, 0xf5, 0x58, 0xe4, 0x2f, 0x0d, 0x9b, 0x49, 0xed, 0xdf,
+	0xf3, 0x98, 0xd4, 0xd9, 0x46, 0x9d, 0xf6, 0x8f, 0x9c, 0x6d, 0x24, 0xe7, 0xa3, 0x81, 0xaa, 0xb1,
+	0xc8, 0xd0, 0x89, 0x32, 0x69, 0xcc, 0xdb, 0x28, 0xf1, 0x17, 0x03, 0xe1, 0x0e, 0xa8, 0x54, 0x5b,
+	0x67, 0x13, 0x99, 0xbf, 0xcd, 0xe0, 0x0f, 0x06, 0x5a, 0xef, 0x80, 0x8a, 0x2d, 0x2f, 0x9b, 0xc2,
+	0x5c, 0xdd, 0x77, 0x67, 0xeb, 0x79, 0xe2, 0x99, 0x6a, 0x2e, 0x68, 0x31, 0x67, 0x5a, 0x36, 0x63,
+	0x2d, 0xf1, 0x7b, 0x73, 0xd2, 0xec, 0x97, 0xf5, 0xbb, 0xf1, 0xde, 0xcf, 0x00, 0x00, 0x00, 0xff,
+	0xff, 0xf2, 0x8f, 0xfc, 0x6b, 0xf9, 0x0a, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -215,12 +499,12 @@ const _ = grpc.SupportPackageIsVersion6
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type ConfigControllerClient interface {
 	SubscribeListWatch(ctx context.Context, in *SubscriptionRequest, opts ...grpc.CallOption) (ConfigController_SubscribeListWatchClient, error)
-	GetVirtualNetwork(ctx context.Context, in *Resource, opts ...grpc.CallOption) (*v1alpha1.VirtualNetwork, error)
-	GetVirtualMachineInterface(ctx context.Context, in *Resource, opts ...grpc.CallOption) (*v1alpha1.VirtualMachineInterface, error)
-	GetVirtualMachine(ctx context.Context, in *Resource, opts ...grpc.CallOption) (*v1alpha1.VirtualMachine, error)
-	GetVirtualRouter(ctx context.Context, in *Resource, opts ...grpc.CallOption) (*v1alpha1.VirtualRouter, error)
-	GetRoutingInstance(ctx context.Context, in *Resource, opts ...grpc.CallOption) (*v1alpha1.RoutingInstance, error)
-	GetInstanceIP(ctx context.Context, in *Resource, opts ...grpc.CallOption) (*v1alpha1.InstanceIP, error)
+	GetVirtualNetwork(ctx context.Context, in *Key, opts ...grpc.CallOption) (*v1alpha1.VirtualNetwork, error)
+	GetVirtualMachineInterface(ctx context.Context, in *Key, opts ...grpc.CallOption) (*v1alpha1.VirtualMachineInterface, error)
+	GetVirtualMachine(ctx context.Context, in *Key, opts ...grpc.CallOption) (*v1alpha1.VirtualMachine, error)
+	GetVirtualRouter(ctx context.Context, in *Key, opts ...grpc.CallOption) (*v1alpha1.VirtualRouter, error)
+	GetRoutingInstance(ctx context.Context, in *Key, opts ...grpc.CallOption) (*v1alpha1.RoutingInstance, error)
+	GetInstanceIP(ctx context.Context, in *Key, opts ...grpc.CallOption) (*v1alpha1.InstanceIP, error)
 }
 
 type configControllerClient struct {
@@ -247,7 +531,7 @@ func (c *configControllerClient) SubscribeListWatch(ctx context.Context, in *Sub
 }
 
 type ConfigController_SubscribeListWatchClient interface {
-	Recv() (*Resource, error)
+	Recv() (*KeyAction, error)
 	grpc.ClientStream
 }
 
@@ -255,15 +539,15 @@ type configControllerSubscribeListWatchClient struct {
 	grpc.ClientStream
 }
 
-func (x *configControllerSubscribeListWatchClient) Recv() (*Resource, error) {
-	m := new(Resource)
+func (x *configControllerSubscribeListWatchClient) Recv() (*KeyAction, error) {
+	m := new(KeyAction)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
 	return m, nil
 }
 
-func (c *configControllerClient) GetVirtualNetwork(ctx context.Context, in *Resource, opts ...grpc.CallOption) (*v1alpha1.VirtualNetwork, error) {
+func (c *configControllerClient) GetVirtualNetwork(ctx context.Context, in *Key, opts ...grpc.CallOption) (*v1alpha1.VirtualNetwork, error) {
 	out := new(v1alpha1.VirtualNetwork)
 	err := c.cc.Invoke(ctx, "/github.com.michaelhenkel.config_controller.pkg.apis.v1.ConfigController/GetVirtualNetwork", in, out, opts...)
 	if err != nil {
@@ -272,7 +556,7 @@ func (c *configControllerClient) GetVirtualNetwork(ctx context.Context, in *Reso
 	return out, nil
 }
 
-func (c *configControllerClient) GetVirtualMachineInterface(ctx context.Context, in *Resource, opts ...grpc.CallOption) (*v1alpha1.VirtualMachineInterface, error) {
+func (c *configControllerClient) GetVirtualMachineInterface(ctx context.Context, in *Key, opts ...grpc.CallOption) (*v1alpha1.VirtualMachineInterface, error) {
 	out := new(v1alpha1.VirtualMachineInterface)
 	err := c.cc.Invoke(ctx, "/github.com.michaelhenkel.config_controller.pkg.apis.v1.ConfigController/GetVirtualMachineInterface", in, out, opts...)
 	if err != nil {
@@ -281,7 +565,7 @@ func (c *configControllerClient) GetVirtualMachineInterface(ctx context.Context,
 	return out, nil
 }
 
-func (c *configControllerClient) GetVirtualMachine(ctx context.Context, in *Resource, opts ...grpc.CallOption) (*v1alpha1.VirtualMachine, error) {
+func (c *configControllerClient) GetVirtualMachine(ctx context.Context, in *Key, opts ...grpc.CallOption) (*v1alpha1.VirtualMachine, error) {
 	out := new(v1alpha1.VirtualMachine)
 	err := c.cc.Invoke(ctx, "/github.com.michaelhenkel.config_controller.pkg.apis.v1.ConfigController/GetVirtualMachine", in, out, opts...)
 	if err != nil {
@@ -290,7 +574,7 @@ func (c *configControllerClient) GetVirtualMachine(ctx context.Context, in *Reso
 	return out, nil
 }
 
-func (c *configControllerClient) GetVirtualRouter(ctx context.Context, in *Resource, opts ...grpc.CallOption) (*v1alpha1.VirtualRouter, error) {
+func (c *configControllerClient) GetVirtualRouter(ctx context.Context, in *Key, opts ...grpc.CallOption) (*v1alpha1.VirtualRouter, error) {
 	out := new(v1alpha1.VirtualRouter)
 	err := c.cc.Invoke(ctx, "/github.com.michaelhenkel.config_controller.pkg.apis.v1.ConfigController/GetVirtualRouter", in, out, opts...)
 	if err != nil {
@@ -299,7 +583,7 @@ func (c *configControllerClient) GetVirtualRouter(ctx context.Context, in *Resou
 	return out, nil
 }
 
-func (c *configControllerClient) GetRoutingInstance(ctx context.Context, in *Resource, opts ...grpc.CallOption) (*v1alpha1.RoutingInstance, error) {
+func (c *configControllerClient) GetRoutingInstance(ctx context.Context, in *Key, opts ...grpc.CallOption) (*v1alpha1.RoutingInstance, error) {
 	out := new(v1alpha1.RoutingInstance)
 	err := c.cc.Invoke(ctx, "/github.com.michaelhenkel.config_controller.pkg.apis.v1.ConfigController/GetRoutingInstance", in, out, opts...)
 	if err != nil {
@@ -308,7 +592,7 @@ func (c *configControllerClient) GetRoutingInstance(ctx context.Context, in *Res
 	return out, nil
 }
 
-func (c *configControllerClient) GetInstanceIP(ctx context.Context, in *Resource, opts ...grpc.CallOption) (*v1alpha1.InstanceIP, error) {
+func (c *configControllerClient) GetInstanceIP(ctx context.Context, in *Key, opts ...grpc.CallOption) (*v1alpha1.InstanceIP, error) {
 	out := new(v1alpha1.InstanceIP)
 	err := c.cc.Invoke(ctx, "/github.com.michaelhenkel.config_controller.pkg.apis.v1.ConfigController/GetInstanceIP", in, out, opts...)
 	if err != nil {
@@ -320,12 +604,12 @@ func (c *configControllerClient) GetInstanceIP(ctx context.Context, in *Resource
 // ConfigControllerServer is the server API for ConfigController service.
 type ConfigControllerServer interface {
 	SubscribeListWatch(*SubscriptionRequest, ConfigController_SubscribeListWatchServer) error
-	GetVirtualNetwork(context.Context, *Resource) (*v1alpha1.VirtualNetwork, error)
-	GetVirtualMachineInterface(context.Context, *Resource) (*v1alpha1.VirtualMachineInterface, error)
-	GetVirtualMachine(context.Context, *Resource) (*v1alpha1.VirtualMachine, error)
-	GetVirtualRouter(context.Context, *Resource) (*v1alpha1.VirtualRouter, error)
-	GetRoutingInstance(context.Context, *Resource) (*v1alpha1.RoutingInstance, error)
-	GetInstanceIP(context.Context, *Resource) (*v1alpha1.InstanceIP, error)
+	GetVirtualNetwork(context.Context, *Key) (*v1alpha1.VirtualNetwork, error)
+	GetVirtualMachineInterface(context.Context, *Key) (*v1alpha1.VirtualMachineInterface, error)
+	GetVirtualMachine(context.Context, *Key) (*v1alpha1.VirtualMachine, error)
+	GetVirtualRouter(context.Context, *Key) (*v1alpha1.VirtualRouter, error)
+	GetRoutingInstance(context.Context, *Key) (*v1alpha1.RoutingInstance, error)
+	GetInstanceIP(context.Context, *Key) (*v1alpha1.InstanceIP, error)
 }
 
 // UnimplementedConfigControllerServer can be embedded to have forward compatible implementations.
@@ -335,22 +619,22 @@ type UnimplementedConfigControllerServer struct {
 func (*UnimplementedConfigControllerServer) SubscribeListWatch(req *SubscriptionRequest, srv ConfigController_SubscribeListWatchServer) error {
 	return status.Errorf(codes.Unimplemented, "method SubscribeListWatch not implemented")
 }
-func (*UnimplementedConfigControllerServer) GetVirtualNetwork(ctx context.Context, req *Resource) (*v1alpha1.VirtualNetwork, error) {
+func (*UnimplementedConfigControllerServer) GetVirtualNetwork(ctx context.Context, req *Key) (*v1alpha1.VirtualNetwork, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetVirtualNetwork not implemented")
 }
-func (*UnimplementedConfigControllerServer) GetVirtualMachineInterface(ctx context.Context, req *Resource) (*v1alpha1.VirtualMachineInterface, error) {
+func (*UnimplementedConfigControllerServer) GetVirtualMachineInterface(ctx context.Context, req *Key) (*v1alpha1.VirtualMachineInterface, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetVirtualMachineInterface not implemented")
 }
-func (*UnimplementedConfigControllerServer) GetVirtualMachine(ctx context.Context, req *Resource) (*v1alpha1.VirtualMachine, error) {
+func (*UnimplementedConfigControllerServer) GetVirtualMachine(ctx context.Context, req *Key) (*v1alpha1.VirtualMachine, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetVirtualMachine not implemented")
 }
-func (*UnimplementedConfigControllerServer) GetVirtualRouter(ctx context.Context, req *Resource) (*v1alpha1.VirtualRouter, error) {
+func (*UnimplementedConfigControllerServer) GetVirtualRouter(ctx context.Context, req *Key) (*v1alpha1.VirtualRouter, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetVirtualRouter not implemented")
 }
-func (*UnimplementedConfigControllerServer) GetRoutingInstance(ctx context.Context, req *Resource) (*v1alpha1.RoutingInstance, error) {
+func (*UnimplementedConfigControllerServer) GetRoutingInstance(ctx context.Context, req *Key) (*v1alpha1.RoutingInstance, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetRoutingInstance not implemented")
 }
-func (*UnimplementedConfigControllerServer) GetInstanceIP(ctx context.Context, req *Resource) (*v1alpha1.InstanceIP, error) {
+func (*UnimplementedConfigControllerServer) GetInstanceIP(ctx context.Context, req *Key) (*v1alpha1.InstanceIP, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetInstanceIP not implemented")
 }
 
@@ -367,7 +651,7 @@ func _ConfigController_SubscribeListWatch_Handler(srv interface{}, stream grpc.S
 }
 
 type ConfigController_SubscribeListWatchServer interface {
-	Send(*Resource) error
+	Send(*KeyAction) error
 	grpc.ServerStream
 }
 
@@ -375,12 +659,12 @@ type configControllerSubscribeListWatchServer struct {
 	grpc.ServerStream
 }
 
-func (x *configControllerSubscribeListWatchServer) Send(m *Resource) error {
+func (x *configControllerSubscribeListWatchServer) Send(m *KeyAction) error {
 	return x.ServerStream.SendMsg(m)
 }
 
 func _ConfigController_GetVirtualNetwork_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Resource)
+	in := new(Key)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -392,13 +676,13 @@ func _ConfigController_GetVirtualNetwork_Handler(srv interface{}, ctx context.Co
 		FullMethod: "/github.com.michaelhenkel.config_controller.pkg.apis.v1.ConfigController/GetVirtualNetwork",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ConfigControllerServer).GetVirtualNetwork(ctx, req.(*Resource))
+		return srv.(ConfigControllerServer).GetVirtualNetwork(ctx, req.(*Key))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _ConfigController_GetVirtualMachineInterface_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Resource)
+	in := new(Key)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -410,13 +694,13 @@ func _ConfigController_GetVirtualMachineInterface_Handler(srv interface{}, ctx c
 		FullMethod: "/github.com.michaelhenkel.config_controller.pkg.apis.v1.ConfigController/GetVirtualMachineInterface",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ConfigControllerServer).GetVirtualMachineInterface(ctx, req.(*Resource))
+		return srv.(ConfigControllerServer).GetVirtualMachineInterface(ctx, req.(*Key))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _ConfigController_GetVirtualMachine_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Resource)
+	in := new(Key)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -428,13 +712,13 @@ func _ConfigController_GetVirtualMachine_Handler(srv interface{}, ctx context.Co
 		FullMethod: "/github.com.michaelhenkel.config_controller.pkg.apis.v1.ConfigController/GetVirtualMachine",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ConfigControllerServer).GetVirtualMachine(ctx, req.(*Resource))
+		return srv.(ConfigControllerServer).GetVirtualMachine(ctx, req.(*Key))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _ConfigController_GetVirtualRouter_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Resource)
+	in := new(Key)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -446,13 +730,13 @@ func _ConfigController_GetVirtualRouter_Handler(srv interface{}, ctx context.Con
 		FullMethod: "/github.com.michaelhenkel.config_controller.pkg.apis.v1.ConfigController/GetVirtualRouter",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ConfigControllerServer).GetVirtualRouter(ctx, req.(*Resource))
+		return srv.(ConfigControllerServer).GetVirtualRouter(ctx, req.(*Key))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _ConfigController_GetRoutingInstance_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Resource)
+	in := new(Key)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -464,13 +748,13 @@ func _ConfigController_GetRoutingInstance_Handler(srv interface{}, ctx context.C
 		FullMethod: "/github.com.michaelhenkel.config_controller.pkg.apis.v1.ConfigController/GetRoutingInstance",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ConfigControllerServer).GetRoutingInstance(ctx, req.(*Resource))
+		return srv.(ConfigControllerServer).GetRoutingInstance(ctx, req.(*Key))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _ConfigController_GetInstanceIP_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Resource)
+	in := new(Key)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -482,7 +766,7 @@ func _ConfigController_GetInstanceIP_Handler(srv interface{}, ctx context.Contex
 		FullMethod: "/github.com.michaelhenkel.config_controller.pkg.apis.v1.ConfigController/GetInstanceIP",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ConfigControllerServer).GetInstanceIP(ctx, req.(*Resource))
+		return srv.(ConfigControllerServer).GetInstanceIP(ctx, req.(*Key))
 	}
 	return interceptor(ctx, in, info, handler)
 }

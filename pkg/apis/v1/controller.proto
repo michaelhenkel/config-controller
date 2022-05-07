@@ -12,32 +12,51 @@ import "k8s.io/api/core/v1/generated.proto";
 option go_package = "github.com/michaelhenkel/config-controller/pkg/apis/v1";
 
 service ConfigController {
-    rpc SubscribeListWatch(SubscriptionRequest) returns (stream Resource);
-    rpc GetVirtualNetwork(Resource) returns (ssd_git.juniper.net.contrail.cn2.contrail.pkg.apis.core.v1alpha1.VirtualNetwork);
-    rpc GetVirtualMachineInterface(Resource) returns (ssd_git.juniper.net.contrail.cn2.contrail.pkg.apis.core.v1alpha1.VirtualMachineInterface);
-    rpc GetVirtualMachine(Resource) returns (ssd_git.juniper.net.contrail.cn2.contrail.pkg.apis.core.v1alpha1.VirtualMachine);
-    rpc GetVirtualRouter(Resource) returns (ssd_git.juniper.net.contrail.cn2.contrail.pkg.apis.core.v1alpha1.VirtualRouter);
-    rpc GetRoutingInstance(Resource) returns (ssd_git.juniper.net.contrail.cn2.contrail.pkg.apis.core.v1alpha1.RoutingInstance);
-    rpc GetInstanceIP(Resource) returns (ssd_git.juniper.net.contrail.cn2.contrail.pkg.apis.core.v1alpha1.InstanceIP);
+    rpc SubscribeListWatch(SubscriptionRequest) returns (stream KeyAction);
+    rpc GetVirtualNetwork(Key) returns (ssd_git.juniper.net.contrail.cn2.contrail.pkg.apis.core.v1alpha1.VirtualNetwork);
+    rpc GetVirtualMachineInterface(Key) returns (ssd_git.juniper.net.contrail.cn2.contrail.pkg.apis.core.v1alpha1.VirtualMachineInterface);
+    rpc GetVirtualMachine(Key) returns (ssd_git.juniper.net.contrail.cn2.contrail.pkg.apis.core.v1alpha1.VirtualMachine);
+    rpc GetVirtualRouter(Key) returns (ssd_git.juniper.net.contrail.cn2.contrail.pkg.apis.core.v1alpha1.VirtualRouter);
+    rpc GetRoutingInstance(Key) returns (ssd_git.juniper.net.contrail.cn2.contrail.pkg.apis.core.v1alpha1.RoutingInstance);
+    rpc GetInstanceIP(Key) returns (ssd_git.juniper.net.contrail.cn2.contrail.pkg.apis.core.v1alpha1.InstanceIP);
+}
+
+service Cli {
+    rpc Get (Key) returns (Resource);
 }
 
 message SubscriptionRequest {
     string name = 1;
 }
 
-message Resource {
+
+message Key {
     string kind = 1;
     string name = 2;
     string namespace = 3;
+}
+
+message Action {
     enum Action {
         ADD = 0;
         DEL = 1;
         RETRY = 2;
+        GET = 3;
     }
-    Action action = 4;
+    Action action = 1;
 }
 
-/*
+message KeyAction {
+    Key key = 1;
+    enum Action {
+        ADD = 0;
+        DEL = 1;
+        RETRY = 2;
+        GET = 3;
+    }
+    Action action = 2;
+}
+
 message Resource {
     oneof resource {
         ssd_git.juniper.net.contrail.cn2.contrail.pkg.apis.core.v1alpha1.VirtualNetwork virtualNetwork = 1;
@@ -49,4 +68,3 @@ message Resource {
         k8s.io.api.core.v1.Namespace namespace = 7;
     }
 }
-*/

@@ -28,7 +28,7 @@ func (sm *SubscriptionManager) RemoveSubscription(node string) {
 	delete(sm.Subscriptions, node)
 }
 
-func (sm *SubscriptionManager) GetSubscriptionChannel(node string) chan pbv1.Resource {
+func (sm *SubscriptionManager) GetSubscriptionChannel(node string) chan pbv1.KeyAction {
 	if subscription, ok := sm.Subscriptions[node]; ok {
 		return subscription.Channel
 	}
@@ -44,7 +44,7 @@ func NewSubscriptionManager(newSubscriberChan chan string) *SubscriptionManager 
 }
 
 type Subscription struct {
-	Channel chan pbv1.Resource
+	Channel chan pbv1.KeyAction
 	Init    bool
 }
 
@@ -73,8 +73,8 @@ func (c *ConfigController) List(node string) error {
 	return nil
 }
 
-func (c *ConfigController) GetVirtualNetwork(ctx context.Context, res *pbv1.Resource) (*contrail.VirtualNetwork, error) {
-	resource, err := c.resourceControllerMap[res.Kind].Get(res.Name, res.Namespace)
+func (c *ConfigController) GetVirtualNetwork(ctx context.Context, key *pbv1.Key) (*contrail.VirtualNetwork, error) {
+	resource, err := c.resourceControllerMap[key.Kind].Get(key.Name, key.Namespace)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			err = status.Error(codes.NotFound, "resource was not found")
@@ -88,8 +88,8 @@ func (c *ConfigController) GetVirtualNetwork(ctx context.Context, res *pbv1.Reso
 	return nil, fmt.Errorf("cannot decode to VirtualNetwork")
 }
 
-func (c *ConfigController) GetVirtualMachineInterface(ctx context.Context, res *pbv1.Resource) (*contrail.VirtualMachineInterface, error) {
-	resource, err := c.resourceControllerMap[res.Kind].Get(res.Name, res.Namespace)
+func (c *ConfigController) GetVirtualMachineInterface(ctx context.Context, key *pbv1.Key) (*contrail.VirtualMachineInterface, error) {
+	resource, err := c.resourceControllerMap[key.Kind].Get(key.Name, key.Namespace)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			err = status.Error(codes.NotFound, "resource was not found")
@@ -103,8 +103,8 @@ func (c *ConfigController) GetVirtualMachineInterface(ctx context.Context, res *
 	return nil, fmt.Errorf("cannot decode to VirtualMachineInterface")
 }
 
-func (c *ConfigController) GetVirtualMachine(ctx context.Context, res *pbv1.Resource) (*contrail.VirtualMachine, error) {
-	resource, err := c.resourceControllerMap[res.Kind].Get(res.Name, res.Namespace)
+func (c *ConfigController) GetVirtualMachine(ctx context.Context, key *pbv1.Key) (*contrail.VirtualMachine, error) {
+	resource, err := c.resourceControllerMap[key.Kind].Get(key.Name, key.Namespace)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			err = status.Error(codes.NotFound, "resource was not found")
@@ -119,7 +119,7 @@ func (c *ConfigController) GetVirtualMachine(ctx context.Context, res *pbv1.Reso
 }
 
 func (c *ConfigController) SubscribeListWatch(req *pbv1.SubscriptionRequest, srv pbv1.ConfigController_SubscribeListWatchServer) error {
-	conn := make(chan pbv1.Resource)
+	conn := make(chan pbv1.KeyAction)
 	c.SubscriptionManager.AddSubscription(req.Name, Subscription{
 		Channel: conn,
 		Init:    false,
@@ -154,8 +154,11 @@ func (c *ConfigController) SubscribeListWatch(req *pbv1.SubscriptionRequest, srv
 func (c *Client) EventWatcher() {
 	for nodeResource := range c.nodeResourceChan {
 		if subscriber, ok := c.subscriptionManager.Subscriptions[nodeResource.Node]; ok {
-			nodeResource.Action = pbv1.Resource_ADD
-			subscriber.Channel <- *nodeResource.Resource
+			//subscriber.Channel <- *nodeResource.Key
+			subscriber.Channel <- pbv1.KeyAction{
+				Key:    nodeResource.Key,
+				Action: pbv1.KeyAction_ADD,
+			}
 		}
 	}
 }
